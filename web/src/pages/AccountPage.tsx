@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
+import { getTheme, setTheme, type Theme } from '../lib/theme'
 
 export default function AccountPage() {
   const { session, activeCampaign, signOut } = useAuth()
@@ -10,6 +11,7 @@ export default function AccountPage() {
   const [name, setName] = useState('')
   const [pw1, setPw1] = useState('')
   const [pw2, setPw2] = useState('')
+  const [theme, setThemeState] = useState<Theme>(getTheme())
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -68,6 +70,30 @@ export default function AccountPage() {
         <button onClick={saveName} disabled={busy} className={btn}>
           Save name
         </button>
+      </Section>
+
+      <Section title="Appearance">
+        <div className="flex gap-2">
+          {(['light', 'dark', 'system'] as Theme[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => {
+                setTheme(t)
+                setThemeState(t)
+              }}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm capitalize ${
+                theme === t
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-slate-400 mt-2">
+          "System" follows your phone or computer's light/dark setting.
+        </p>
       </Section>
 
       <Section title="Change password">

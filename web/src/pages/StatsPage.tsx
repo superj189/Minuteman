@@ -19,6 +19,8 @@ import VoterDetail from '../components/VoterDetail'
 import CanvassDrill, { type DrillFilter } from '../components/CanvassDrill'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
+// A mid-gray that stays legible on both light and dark cards.
+ChartJS.defaults.color = '#94a3b8'
 
 // ── Types matching campaign_stats() (migration 0009) ──
 interface CountRow {
