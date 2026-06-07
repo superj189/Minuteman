@@ -139,9 +139,9 @@ export default function VoterListPage() {
   )
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto">
+    <div className="p-3 sm:p-6 max-w-[1400px] mx-auto">
       {/* Tier summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-4 sm:mb-5">
         {tierCards.map((c) => {
           const active = tierFilter === c.tier
           return (

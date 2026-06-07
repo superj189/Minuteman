@@ -324,7 +324,7 @@ export default function MapPage() {
       </MapContainer>
 
       {/* Legend + tier filter */}
-      <div className="absolute top-3 right-3 z-[1000] bg-white/95 backdrop-blur rounded-lg shadow-lg p-3 text-sm w-56">
+      <div className="absolute top-3 right-3 z-[1000] bg-white/95 backdrop-blur rounded-lg shadow-lg p-2.5 sm:p-3 text-sm w-44 sm:w-56 max-w-[calc(100vw-1.5rem)]">
         <div className="font-semibold text-slate-900 mb-2">{households.length.toLocaleString()} households</div>
         <div className="space-y-1">
           {TIER_ORDER.map((t) => {
@@ -362,7 +362,7 @@ export default function MapPage() {
       )}
 
       {/* Turf panel */}
-      <div className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-xl p-3 w-72 max-h-[70%] overflow-y-auto text-sm">
+      <div className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-xl p-3 w-56 sm:w-72 max-w-[calc(100vw-1.5rem)] max-h-[55%] sm:max-h-[70%] overflow-y-auto text-sm">
         <h3 className="font-semibold text-slate-900 mb-1">Turf zones</h3>
         {isAdmin ? (
           <p className="text-[11px] text-slate-500 mb-2 leading-tight">
@@ -423,7 +423,7 @@ export default function MapPage() {
 
       {/* Household roster */}
       {selected && (
-        <div className="absolute bottom-3 left-3 z-[1000] bg-white rounded-lg shadow-xl p-4 text-sm w-80 max-h-[60%] overflow-y-auto">
+        <div className="absolute bottom-3 left-3 z-[1000] bg-white rounded-lg shadow-xl p-4 text-sm w-80 max-w-[calc(100vw-1.5rem)] max-h-[55%] sm:max-h-[60%] overflow-y-auto">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="font-semibold text-slate-900">{selected.full_address}</div>
             <button
