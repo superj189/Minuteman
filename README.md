@@ -23,8 +23,9 @@ See the canonical project doc (`../HD100_PROJECT_DOCUMENTATION.md`) for full bac
 | **Map page** — boundary + household markers + roster cards | ✅ working |
 | **Contact logging + consent capture** (list & map) | ✅ working (incl. consent void) |
 | **Stats page** — live charts (`0009` stats function) | ✅ working |
-| **Turf cutting** — draw zones, assign volunteers (`0010` turf functions) | ✅ working |
-| PWA packaging (installable on phones) | ⏳ next |
+| **Turf cutting** — draw/assign zones, district clipping + snapping (`0010`/`0012`/`0013`) | ✅ working (merged into Map) |
+| **PWA** — installable on phones, app icon, offline app shell | ✅ working |
+| **Deploy to Vercel** (HTTPS; needed for phone install) | ⏳ next |
 | SOS hourly early-vote cron (build ~Oct 2026) | ⏳ |
 
 See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the session log and how to resume.
