@@ -101,6 +101,24 @@ pinned to `auth.uid()`. Open items:
       for the `viewer` role is UI-level only — revisit if a stricter analytics-only
       viewer is wanted (flagged in `0006`).
 
+## Requested features (planned, not urgent)
+
+1. **Vote-timing propensity** — a stat showing whether a voter tends to vote early
+   vs. on election day. Needs the *vote method* per past election, which is NOT in
+   `targeted_voters.csv` (only yes/no "did they vote" flags were kept). The method
+   lives in the GA SOS **voter history files** (free, re-downloadable from
+   mvp.sos.ga.gov). Build path: re-download history files → extract absentee/advance
+   vs. election-day method → add a `voters` field (additive migration) → compute
+   propensity. No data lost by waiting.
+2. **Live GA SOS early-vote retrieval** — the hourly ingestion (objective 7). Schema is
+   already prepped: `voters.voted_early / early_vote_date / early_vote_method` +
+   `sos_imports` table. Nothing to ingest until early voting opens (~mid-Oct 2026).
+   Build the cron/Edge Function closer to then.
+
+   *Synergy:* #1 (likely-to-vote-early) + #2 (already-voted) together let the campaign
+   stop canvassing people who've already voted and focus election-day GOTV on
+   supporters who typically wait.
+
 ## Other reminders
 
 - [ ] The Phase 1 dashboard (`../hd100_dashboard.html`) still works standalone and is
