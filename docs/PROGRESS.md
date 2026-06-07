@@ -120,6 +120,18 @@ pinned to `auth.uid()`. Open items:
    stop canvassing people who've already voted and focus election-day GOTV on
    supporters who typically wait.
 
+## Dev tooling notes
+
+- **Mobile/visual self-check:** I can screenshot the app at a phone viewport without
+  the user. Recreate a throwaway manager login with `node scripts/make_test_user.mjs`
+  (mobiletest@example.com / TestPass123!), `npm install -D playwright` + `npx playwright
+  install chromium` inside `web/`, run the dev server, then `node web/shoot.mjs`. These
+  files are gitignored (test creds) and playwright must be uninstalled from `web/` before
+  committing (its postinstall downloads browsers → would break the Vercel build). Delete
+  the test user afterward via the auth admin API.
+- The web app is responsive as of 2026-06-07 (voter cards on mobile, collapsible map
+  panels, fitted header).
+
 ## Other reminders
 
 - [ ] The Phase 1 dashboard (`../hd100_dashboard.html`) still works standalone and is
