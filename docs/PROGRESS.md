@@ -88,9 +88,10 @@ pinned to `auth.uid()`. Open items:
 - [ ] **Rotate the Supabase DB password** — it was shared in chat; treat as compromised.
       Settings → Database → Reset. *(highest priority)*
 - [ ] **Re-enable email confirmation** before real users (toggled OFF for testing).
-- [ ] **Deploy migration `0007_security_hardening.sql`** — pins SECURITY DEFINER
-      `search_path = ''` and tightens audit-log attribution. Written, **not yet run**
-      in Supabase. Run it in the SQL Editor next session.
+- [ ] **Deploy migrations `0007` and `0008`** — `0007` pins SECURITY DEFINER
+      `search_path = ''` and tightens audit-log attribution; `0008` adds consent
+      "void / entered-by-mistake" support (the in-app "mistake?" button needs it).
+      Both written, **not yet run** in Supabase. Run them in the SQL Editor in order.
 - [ ] **Run Supabase Security Advisor** (Dashboard → Advisors → Security) and clear findings.
 - [ ] **Enable leaked-password protection** (Auth settings).
 - [ ] Consider **invite-only signup** for production (open signup is safe today since

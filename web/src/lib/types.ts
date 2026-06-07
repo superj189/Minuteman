@@ -85,6 +85,7 @@ export interface ContactInfoRow {
 }
 
 export interface ConsentStateRow {
+  id: string
   consent_type: string
   granted: boolean
   occurred_at: string

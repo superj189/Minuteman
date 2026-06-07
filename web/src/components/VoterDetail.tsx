@@ -44,7 +44,7 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
         .order('created_at', { ascending: false }),
       supabase
         .from('current_consent')
-        .select('consent_type,granted,occurred_at')
+        .select('id,consent_type,granted,occurred_at')
         .eq('voter_id', voter.id),
       supabase
         .from('notes')
@@ -124,6 +124,25 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
         attested_by: userId,
       }),
     )
+
+  // Strike the most recent consent entry for a type as "entered by mistake".
+  // Unlike a revoke, this removes it from the record entirely (but is itself logged).
+  const voidConsent = (state: ConsentStateRow) => {
+    if (
+      !window.confirm(
+        'Mark the last consent change as entered by mistake?\n\n' +
+          'It will be struck from the voter\'s record (history is still kept for auditing). ' +
+          'Use this only for accidental clicks — not when a voter changes their mind.',
+      )
+    )
+      return
+    run(() =>
+      supabase
+        .from('consent_records')
+        .update({ voided_at: new Date().toISOString(), voided_by: userId, void_reason: 'entered in error' })
+        .eq('id', state.id),
+    )
+  }
 
   const saveNote = () => {
     if (!noteText.trim()) return
@@ -260,23 +279,36 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
                 return (
                   <div key={type} className="flex items-center justify-between">
                     <span className="text-sm text-slate-700">{label}</span>
-                    <button
-                      onClick={() => toggleConsent(type, granted)}
-                      disabled={saving}
-                      className={`text-xs rounded-full px-3 py-1 border ${
-                        granted
-                          ? 'bg-green-600 text-white border-green-600'
-                          : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      {granted ? '✓ Granted' : 'Not granted'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {state && (
+                        <button
+                          onClick={() => voidConsent(state)}
+                          disabled={saving}
+                          title="Strike the last change as a mistake"
+                          className="text-[11px] text-slate-400 hover:text-red-600 underline"
+                        >
+                          mistake?
+                        </button>
+                      )}
+                      <button
+                        onClick={() => toggleConsent(type, granted)}
+                        disabled={saving}
+                        className={`text-xs rounded-full px-3 py-1 border ${
+                          granted
+                            ? 'bg-green-600 text-white border-green-600'
+                            : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {granted ? '✓ Granted' : 'Not granted'}
+                      </button>
+                    </div>
                   </div>
                 )
               })}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1.5">
-              Tapping records a timestamped, attributed consent change (history is kept).
+            <div className="text-[11px] text-slate-400 mt-1.5 leading-tight">
+              Tap the button to grant or revoke (voter changed their mind — kept in history).
+              Use <span className="text-slate-500">mistake?</span> only to strike an accidental click.
             </div>
           </Section>
 
