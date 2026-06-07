@@ -10,9 +10,12 @@ import { TIER_ORDER, tierMeta } from '../lib/tiers'
 import {
   HOUSEHOLD_COLUMNS,
   ROSTER_COLUMNS,
+  VOTER_COLUMNS,
   type Household,
   type RosterVoter,
+  type Voter,
 } from '../lib/types'
+import VoterDetail from '../components/VoterDetail'
 
 const boundary = boundaryRaw as GeoJsonObject
 const CENTER: [number, number] = [34.1238, -84.0623] // district centroid (project doc §3)
@@ -93,6 +96,7 @@ export default function MapPage() {
   const [selected, setSelected] = useState<Household | null>(null)
   const [roster, setRoster] = useState<RosterVoter[]>([])
   const [rosterLoading, setRosterLoading] = useState(false)
+  const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null)
 
   // Load households once per campaign.
   useEffect(() => {
@@ -159,6 +163,12 @@ export default function MapPage() {
   }, [])
 
   const handleSelect = useCallback((hh: Household) => setSelected(hh), [])
+
+  // Clicking a resident loads their full record and opens the logging drawer.
+  const openVoter = useCallback(async (id: string) => {
+    const { data } = await supabase.from('voters').select(VOTER_COLUMNS).eq('id', id).single()
+    if (data) setSelectedVoter(data as unknown as Voter)
+  }, [])
 
   return (
     <div className="relative" style={{ height: 'calc(100vh - 56px)' }}>
@@ -233,33 +243,43 @@ export default function MapPage() {
               ×
             </button>
           </div>
-          <div className="text-xs text-slate-500 mb-3">
+          <div className="text-xs text-slate-500 mb-1">
             {selected.voter_count} {selected.voter_count === 1 ? 'voter' : 'voters'} at this address
           </div>
+          <div className="text-[11px] text-blue-600 mb-2">Tap a name to log a visit →</div>
           {rosterLoading ? (
             <div className="text-slate-400">Loading residents…</div>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-0.5">
               {roster.map((v) => {
                 const tm = tierMeta(v.tier)
                 return (
-                  <li key={v.id} className="flex items-center gap-2">
-                    <span
-                      className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium text-white shrink-0"
-                      style={{ background: tm.color }}
+                  <li key={v.id}>
+                    <button
+                      onClick={() => openVoter(v.id)}
+                      className="w-full flex items-center gap-2 text-left rounded px-1.5 py-1 hover:bg-blue-50"
                     >
-                      {tm.short}
-                    </span>
-                    <span className="text-slate-800 flex-1">
-                      {(v.last_name ?? '').trim()}, {(v.first_name ?? '').trim()}
-                    </span>
-                    <span className="text-slate-400 text-xs">{v.age ?? ''}</span>
+                      <span
+                        className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium text-white shrink-0"
+                        style={{ background: tm.color }}
+                      >
+                        {tm.short}
+                      </span>
+                      <span className="text-slate-800 flex-1">
+                        {(v.last_name ?? '').trim()}, {(v.first_name ?? '').trim()}
+                      </span>
+                      <span className="text-slate-400 text-xs">{v.age ?? ''}</span>
+                    </button>
                   </li>
                 )
               })}
             </ul>
           )}
         </div>
+      )}
+
+      {selectedVoter && (
+        <VoterDetail voter={selectedVoter} onClose={() => setSelectedVoter(null)} />
       )}
     </div>
   )
