@@ -12,11 +12,16 @@ See the canonical project doc (`../HD100_PROJECT_DOCUMENTATION.md`) for full bac
 
 | Stage | State |
 |---|---|
-| **Schema v1** | ✅ delivered & approved |
-| **Row Level Security policies** (migration `0006`) | ✅ delivered — **awaiting your review** |
-| Import script (load HD-100 as tenant #1) | ⏳ next |
-| **GATE:** deploy schema + RLS, confirm data loads & isolation holds | ⏳ before any frontend work |
-| API + React frontend, contact/consent, turf, SOS cron, PWA | ⏳ after the gate |
+| **Schema v1** (`0001`–`0005`) | ✅ deployed to Supabase |
+| **Row Level Security policies** (`0006`) | ✅ deployed |
+| **Import script** — HD-100 loaded as tenant #1 | ✅ 43,944 voters + 18,705 households, verified |
+| **GATE:** data loads & isolation holds | ✅ **passed** |
+| **Web app — auth + voter list** (`web/`) | ✅ working live against Supabase |
+| Map + Stats pages (port Phase 1 views) | ⏳ next |
+| Contact logging + consent capture | ⏳ |
+| Turf cutting, SOS hourly cron, PWA | ⏳ |
+
+See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the session log and how to resume.
 
 > **Review gate:** the schema is reviewed and deployed *before* any application
 > code. Changing the schema after a frontend exists is the expensive mistake.
