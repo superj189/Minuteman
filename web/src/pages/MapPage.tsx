@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { MapContainer, TileLayer, GeoJSON, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import '@geoman-io/leaflet-geoman-free'
+import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import type { GeoJsonObject } from 'geojson'
 import boundaryRaw from '../data/hd100_boundary.json'
 import { supabase } from '../lib/supabase'
@@ -14,20 +16,28 @@ import {
   type Household,
   type RosterVoter,
   type Voter,
+  type Turf,
+  type TurfAssignmentRow,
+  type TeamMember,
 } from '../lib/types'
 import VoterDetail from '../components/VoterDetail'
 
 const boundary = boundaryRaw as GeoJsonObject
 const CENTER: [number, number] = [34.1238, -84.0623] // district centroid (project doc §3)
+const PALETTE = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d']
 
-// A household's headline tier: its best (lowest-#) non-DNC resident, or T6 if the
-// whole door is do-not-contact. Drives both the marker color and the tier filter.
+type Mode = 'canvass' | 'turf'
+
 function displayTier(hh: Household): number {
   return hh.best_tier ?? 6
 }
 
-// Imperatively draws the household markers onto Leaflet's canvas. Doing this with
-// a plain Leaflet layer (rather than ~18k React components) keeps it fast.
+function memberName(m: TeamMember | undefined): string {
+  if (!m) return 'Unknown'
+  return m.full_name || m.email || 'User'
+}
+
+// Colored household markers, drawn imperatively on the canvas for speed.
 function HouseholdLayer({
   households,
   visible,
@@ -46,7 +56,7 @@ function HouseholdLayer({
       if (!visible.has(dt)) continue
       const color = tierMeta(dt).color
       const marker = L.circleMarker([hh.lat, hh.lon], {
-        radius: 3 + Math.min(hh.voter_count, 8) * 0.7, // bigger door = bigger dot
+        radius: 3 + Math.min(hh.voter_count, 8) * 0.7,
         color,
         fillColor: color,
         fillOpacity: 0.85,
@@ -62,9 +72,51 @@ function HouseholdLayer({
   return null
 }
 
+// Geoman draw controls (admins, turf mode). Reports finished polygons.
+function TurfDrawer({ onCreate }: { onCreate: (geom: GeoJsonObject) => void }) {
+  const map = useMap()
+  const cbRef = useRef(onCreate)
+  cbRef.current = onCreate
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pm = (map as any).pm
+    pm.addControls({
+      position: 'topleft',
+      drawPolygon: true,
+      drawRectangle: true,
+      drawMarker: false,
+      drawPolyline: false,
+      drawCircle: false,
+      drawCircleMarker: false,
+      drawText: false,
+      editMode: false,
+      dragMode: false,
+      cutPolygon: false,
+      rotateMode: false,
+      removalMode: false,
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler = (e: any) => {
+      const geom = e.layer.toGeoJSON().geometry as GeoJsonObject
+      map.removeLayer(e.layer) // re-rendered from the DB (clipped to the district) after saving
+      cbRef.current(geom)
+    }
+    map.on('pm:create', handler)
+    return () => {
+      map.off('pm:create', handler)
+      pm.removeControls()
+    }
+  }, [map])
+  return null
+}
+
 export default function MapPage() {
-  const { activeCampaign } = useAuth()
+  const { activeCampaign, session } = useAuth()
   const campaignId = activeCampaign?.campaign_id
+  const myUserId = session?.user.id
+  const isAdmin = activeCampaign?.role === 'manager' || activeCampaign?.role === 'deputy'
+
+  const [mode, setMode] = useState<Mode>('canvass')
 
   const [households, setHouseholds] = useState<Household[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,28 +128,32 @@ export default function MapPage() {
   const [rosterLoading, setRosterLoading] = useState(false)
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null)
 
-  // Load households once per campaign.
+  // Turf state
+  const [turfs, setTurfs] = useState<Turf[]>([])
+  const [turfCounts, setTurfCounts] = useState<Record<string, number>>({})
+  const [assignments, setAssignments] = useState<TurfAssignmentRow[]>([])
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [turfBusy, setTurfBusy] = useState(false)
+  const [turfError, setTurfError] = useState<string | null>(null)
+  const turfsRef = useRef<Turf[]>([])
+  turfsRef.current = turfs
+
+  // Load households.
   useEffect(() => {
     if (!campaignId) return
     let cancelled = false
     setLoading(true)
     setError(null)
     fetchAllHouseholds(campaignId)
-      .then((rows) => {
-        if (!cancelled) setHouseholds(rows)
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e.message ?? 'Failed to load households')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+      .then((rows) => !cancelled && setHouseholds(rows))
+      .catch((e) => !cancelled && setError(e.message ?? 'Failed to load households'))
+      .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
   }, [campaignId])
 
-  // Load the roster for the clicked household.
+  // Roster for the clicked household.
   useEffect(() => {
     if (!selected) {
       setRoster([])
@@ -121,7 +177,50 @@ export default function MapPage() {
     }
   }, [selected])
 
-  // Count households per headline tier (for the legend).
+  // ── Turf loaders ──
+  const loadTurfs = useCallback(async () => {
+    if (!campaignId) return
+    const { data } = await supabase.from('turfs_geojson').select('*').eq('campaign_id', campaignId)
+    const list = (data as unknown as Turf[]) ?? []
+    setTurfs(list)
+    const entries = await Promise.all(
+      list.map(async (t) => {
+        const { data: c } = await supabase.rpc('turf_voter_count', { p_turf_id: t.id })
+        return [t.id, (c as number) ?? 0] as const
+      }),
+    )
+    setTurfCounts(Object.fromEntries(entries))
+  }, [campaignId])
+
+  const loadAssignments = useCallback(async () => {
+    if (!campaignId) return
+    const { data } = await supabase
+      .from('turf_assignments')
+      .select('id,turf_id,assigned_to,status')
+      .eq('campaign_id', campaignId)
+    setAssignments((data as unknown as TurfAssignmentRow[]) ?? [])
+  }, [campaignId])
+
+  const loadMembers = useCallback(async () => {
+    if (!campaignId) return
+    const { data } = await supabase
+      .from('campaign_members')
+      .select('user_id,role,profiles(full_name,email)')
+      .eq('campaign_id', campaignId)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const list = ((data as any[]) ?? []).map((r) => {
+      const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+      return { user_id: r.user_id, role: r.role, full_name: p?.full_name ?? null, email: p?.email ?? null }
+    })
+    setMembers(list as TeamMember[])
+  }, [campaignId])
+
+  useEffect(() => {
+    loadTurfs()
+    loadAssignments()
+    loadMembers()
+  }, [loadTurfs, loadAssignments, loadMembers])
+
   const counts = useMemo(() => {
     const c: Record<number, number> = {}
     for (const hh of households) {
@@ -142,11 +241,57 @@ export default function MapPage() {
 
   const handleSelect = useCallback((hh: Household) => setSelected(hh), [])
 
-  // Clicking a resident loads their full record and opens the logging drawer.
   const openVoter = useCallback(async (id: string) => {
     const { data } = await supabase.from('voters').select(VOTER_COLUMNS).eq('id', id).single()
     if (data) setSelectedVoter(data as unknown as Voter)
   }, [])
+
+  const handleCreateTurf = useCallback(
+    async (geom: GeoJsonObject) => {
+      if (!campaignId) return
+      const name = window.prompt('Name this turf (e.g. "Sugar Hill North"):')?.trim()
+      if (!name) return
+      const color = PALETTE[turfsRef.current.length % PALETTE.length]
+      setTurfBusy(true)
+      setTurfError(null)
+      const { error } = await supabase.rpc('create_turf', {
+        p_campaign_id: campaignId,
+        p_name: name,
+        p_color: color,
+        p_geojson: geom,
+      })
+      if (error) setTurfError(error.message)
+      else await loadTurfs()
+      setTurfBusy(false)
+    },
+    [campaignId, loadTurfs],
+  )
+
+  const assignTurf = async (turfId: string, userId: string) => {
+    setTurfBusy(true)
+    setTurfError(null)
+    await supabase.from('turf_assignments').delete().eq('turf_id', turfId)
+    if (userId) {
+      const { error } = await supabase.from('turf_assignments').insert({
+        campaign_id: campaignId,
+        turf_id: turfId,
+        assigned_to: userId,
+        assigned_by: myUserId,
+        status: 'assigned',
+      })
+      if (error) setTurfError(error.message)
+    }
+    await loadAssignments()
+    setTurfBusy(false)
+  }
+
+  const deleteTurf = async (turfId: string) => {
+    if (!window.confirm('Delete this turf? This also removes its assignment.')) return
+    setTurfBusy(true)
+    await supabase.from('turfs').delete().eq('id', turfId)
+    await Promise.all([loadTurfs(), loadAssignments()])
+    setTurfBusy(false)
+  }
 
   return (
     <div className="relative" style={{ height: 'calc(100vh - 56px)' }}>
@@ -155,20 +300,39 @@ export default function MapPage() {
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap contributors'
         />
-        <GeoJSON
-          data={boundary}
-          style={{ color: '#60a5fa', weight: 2, dashArray: '6', fillOpacity: 0 }}
-        />
-        {!loading && (
-          <HouseholdLayer households={households} visible={visible} onSelect={handleSelect} />
-        )}
+        <GeoJSON data={boundary} style={{ color: '#60a5fa', weight: 2, dashArray: '6', fillOpacity: 0 }} />
+        {!loading && <HouseholdLayer households={households} visible={visible} onSelect={handleSelect} />}
+        {mode === 'turf' &&
+          turfs.map((t) => (
+            <GeoJSON
+              key={t.id}
+              data={t.geojson}
+              style={{ color: t.color, weight: 2, fillColor: t.color, fillOpacity: 0.18 }}
+            >
+              <Tooltip sticky>{t.name}</Tooltip>
+            </GeoJSON>
+          ))}
+        {mode === 'turf' && isAdmin && <TurfDrawer onCreate={handleCreateTurf} />}
       </MapContainer>
+
+      {/* Mode toggle */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white rounded-lg shadow-lg p-1 flex gap-1 text-sm font-medium">
+        {(['canvass', 'turf'] as Mode[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`px-4 py-1.5 rounded-md capitalize ${
+              mode === m ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
 
       {/* Legend + tier filter */}
       <div className="absolute top-3 right-3 z-[1000] bg-white/95 backdrop-blur rounded-lg shadow-lg p-3 text-sm w-56">
-        <div className="font-semibold text-slate-900 mb-2">
-          {households.length.toLocaleString()} households
-        </div>
+        <div className="font-semibold text-slate-900 mb-2">{households.length.toLocaleString()} households</div>
         <div className="space-y-1">
           {TIER_ORDER.map((t) => {
             const tm = tierMeta(t)
@@ -177,11 +341,7 @@ export default function MapPage() {
                 key={t}
                 className="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-50 rounded px-1 py-0.5"
               >
-                <input
-                  type="checkbox"
-                  checked={visible.has(t)}
-                  onChange={() => toggleTier(t)}
-                />
+                <input type="checkbox" checked={visible.has(t)} onChange={() => toggleTier(t)} />
                 <span className="inline-block w-3 h-3 rounded-full" style={{ background: tm.color }} />
                 <span className="text-slate-700 flex-1">
                   {tm.short} {tm.label}
@@ -192,24 +352,83 @@ export default function MapPage() {
           })}
         </div>
         <div className="text-[11px] text-slate-400 mt-2 leading-tight">
-          Each dot is one address, colored by its best target. Bigger dot = more voters.
+          {mode === 'turf'
+            ? 'Filter which voters you see while drawing zones.'
+            : 'Each dot is one address, colored by its best target.'}
         </div>
       </div>
 
-      {/* Loading / error overlay */}
+      {/* Loading / error */}
       {loading && (
         <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 text-white">
           Loading households…
         </div>
       )}
       {error && (
-        <div className="absolute top-3 left-3 z-[1000] bg-red-600 text-white text-sm rounded-lg px-3 py-2 shadow-lg">
+        <div className="absolute top-16 left-3 z-[1000] bg-red-600 text-white text-sm rounded-lg px-3 py-2 shadow-lg">
           {error}
         </div>
       )}
 
-      {/* Selected household roster card */}
-      {selected && (
+      {/* Turf panel (turf mode) */}
+      {mode === 'turf' && (
+        <div className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-xl p-3 w-72 max-h-[70%] overflow-y-auto text-sm">
+          <h3 className="font-semibold text-slate-900 mb-1">Turf zones</h3>
+          {isAdmin ? (
+            <p className="text-[11px] text-slate-500 mb-2 leading-tight">
+              Draw with the ▭ / polygon tools (top-left). Overshoot the district edge — zones snap to the
+              district line automatically.
+            </p>
+          ) : (
+            <p className="text-[11px] text-slate-500 mb-2">Zones assigned to your team.</p>
+          )}
+          {turfError && <div className="text-xs text-red-600 bg-red-50 rounded p-2 mb-2">{turfError}</div>}
+          {turfBusy && <div className="text-xs text-slate-400 mb-2">Saving…</div>}
+          {turfs.length === 0 && <div className="text-slate-400">No turf drawn yet.</div>}
+          {turfs.map((t) => {
+            const a = assignments.find((x) => x.turf_id === t.id)
+            return (
+              <div key={t.id} className="border border-slate-200 rounded-lg p-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: t.color }} />
+                  <span className="font-medium text-slate-900 flex-1">{t.name}</span>
+                  {isAdmin && (
+                    <button onClick={() => deleteTurf(t.id)} title="Delete turf" className="text-slate-300 hover:text-red-600">
+                      🗑
+                    </button>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  {turfCounts[t.id] != null ? turfCounts[t.id].toLocaleString() : '…'} voters
+                </div>
+                {isAdmin ? (
+                  <select
+                    value={a?.assigned_to ?? ''}
+                    onChange={(e) => assignTurf(t.id, e.target.value)}
+                    className="mt-1.5 w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white"
+                  >
+                    <option value="">Unassigned</option>
+                    {members.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {memberName(m)} ({m.role})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  a && (
+                    <div className="text-xs text-slate-600 mt-1">
+                      Assigned to {memberName(members.find((m) => m.user_id === a.assigned_to))}
+                    </div>
+                  )
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Household roster (canvass mode) */}
+      {mode === 'canvass' && selected && (
         <div className="absolute bottom-3 left-3 z-[1000] bg-white rounded-lg shadow-xl p-4 text-sm w-80 max-h-[60%] overflow-y-auto">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="font-semibold text-slate-900">{selected.full_address}</div>
@@ -256,9 +475,7 @@ export default function MapPage() {
         </div>
       )}
 
-      {selectedVoter && (
-        <VoterDetail voter={selectedVoter} onClose={() => setSelectedVoter(null)} />
-      )}
+      {selectedVoter && <VoterDetail voter={selectedVoter} onClose={() => setSelectedVoter(null)} />}
     </div>
   )
 }
