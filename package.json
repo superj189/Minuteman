@@ -1,7 +1,7 @@
 {
-  "name": "hd100-platform",
+  "name": "minuteman",
   "version": "1.0.0",
-  "description": "Multi-tenant, consent-aware voter-contact platform. Evolves the Phase 1 single-file dashboard into a real backend + app, debuting live for the **November 2026 general** (HD-100) and architected to host additional campaigns in 2028.",
+  "description": "Minuteman — multi-tenant, consent-aware voter-contact platform for campaigns. (Internal tooling root; the web app lives in web/.)",
   "main": "index.js",
   "directories": {
     "doc": "docs"
@@ -11,16 +11,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/superj189/Votehub.git"
+    "url": "git+https://github.com/superj189/Minuteman.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/superj189/Votehub/issues"
+    "url": "https://github.com/superj189/Minuteman/issues"
   },
-  "homepage": "https://github.com/superj189/Votehub#readme",
+  "homepage": "https://github.com/superj189/Minuteman#readme",
   "dependencies": {
     "pg": "^8.21.0"
   }

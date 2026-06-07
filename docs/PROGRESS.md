@@ -36,7 +36,7 @@ later only for the SOS cron.
 
 | Thing | Value |
 |---|---|
-| GitHub repo | https://github.com/superj189/Votehub (branch `main`) |
+| GitHub repo | https://github.com/superj189/Minuteman (branch `main`) |
 | Supabase project ref | `oggpadhkqwtohnjngbxe` |
 | HD-100 `campaign_id` | `e4673209-c3ea-46d0-b3b4-4e1aabd734fa` |
 | Admin user | `superj189@gmail.com` — role `manager`, `is_platform_owner = true` |

@@ -15,8 +15,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
+            <span className="font-bold text-blue-700 tracking-tight">Minuteman</span>
+            <span className="text-slate-300">/</span>
             <span className="font-semibold text-slate-900">
-              {activeCampaign?.campaigns.name ?? 'HD-100 Voter Platform'}
+              {activeCampaign?.campaigns.name ?? 'HD-100'}
             </span>
             {activeCampaign && (
               <span className="text-xs rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 capitalize">

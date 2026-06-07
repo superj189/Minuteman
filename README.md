@@ -1,8 +1,11 @@
-# HD-100 Voter Platform (Phase 2)
+# Minuteman
 
-Multi-tenant, consent-aware voter-contact platform. Evolves the Phase 1 single-file
-dashboard into a real backend + app, debuting live for the **November 2026 general**
-(HD-100) and architected to host additional campaigns in 2028.
+> Working product name (chosen 2026-06; needs attorney trademark clearance + a domain
+> before public launch — see `docs/PROGRESS.md`).
+
+Multi-tenant, consent-aware voter-contact platform for campaigns. Evolves the Phase 1
+single-file dashboard into a real backend + app, debuting live for the **November 2026
+general** (HD-100) and architected to host additional campaigns in 2028.
 
 See the canonical project doc (`../HD100_PROJECT_DOCUMENTATION.md`) for full background.
 
