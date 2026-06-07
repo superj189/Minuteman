@@ -1,0 +1,28 @@
+# ── Sensitive voter data — NEVER commit PII to GitHub ──────────────
+# The SOS voter file, merged CSV, and dashboard all contain personal data.
+data/
+*.csv
+*.tsv
+hd100_dashboard.html
+targeted_voters.csv
+
+# ── Secrets ────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Node / build ───────────────────────────────────────────────────
+node_modules/
+dist/
+.next/
+build/
+
+# ── Supabase CLI ───────────────────────────────────────────────────
+supabase/.temp/
+supabase/.branches/
+
+# ── OS / editor ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
