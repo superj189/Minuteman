@@ -85,13 +85,14 @@ publishable/anon key (service_role never reaches the browser); all 14 tables hav
 RLS; self-promotion to platform-owner is blocked; consent/contact attribution is
 pinned to `auth.uid()`. Open items:
 
-- [ ] **Rotate the Supabase DB password** — it was shared in chat; treat as compromised.
-      Settings → Database → Reset. *(highest priority)*
+- [x] **Migrations `0007` and `0008` deployed** (2026-06-07) via `scripts/run_migrations.mjs`.
+      `0007` hardened SECURITY DEFINER search_path + audit attribution; `0008` added
+      consent void support. Future migrations: I run them with that script (needs
+      `SUPABASE_DB_URL` in `.env`).
+- [ ] **DB password hygiene** — password was rotated once, but the new connection
+      string (with password) was pasted in chat. Optionally rotate again and update
+      `SUPABASE_DB_URL` in `.env` directly (Notepad), never via chat.
 - [ ] **Re-enable email confirmation** before real users (toggled OFF for testing).
-- [ ] **Deploy migrations `0007` and `0008`** — `0007` pins SECURITY DEFINER
-      `search_path = ''` and tightens audit-log attribution; `0008` adds consent
-      "void / entered-by-mistake" support (the in-app "mistake?" button needs it).
-      Both written, **not yet run** in Supabase. Run them in the SQL Editor in order.
 - [ ] **Run Supabase Security Advisor** (Dashboard → Advisors → Security) and clear findings.
 - [ ] **Enable leaked-password protection** (Auth settings).
 - [ ] Consider **invite-only signup** for production (open signup is safe today since
