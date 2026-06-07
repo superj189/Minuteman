@@ -1,7 +1,9 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthProvider'
 import LoginPage from './auth/LoginPage'
 import AppShell from './components/AppShell'
 import VoterListPage from './pages/VoterListPage'
+import MapPage from './pages/MapPage'
 
 function Gate() {
   const { session, loading, memberships } = useAuth()
@@ -29,7 +31,11 @@ function Gate() {
 
   return (
     <AppShell>
-      <VoterListPage />
+      <Routes>
+        <Route path="/" element={<VoterListPage />} />
+        <Route path="/map" element={<MapPage />} />
+        <Route path="*" element={<VoterListPage />} />
+      </Routes>
     </AppShell>
   )
 }
@@ -37,7 +43,9 @@ function Gate() {
 export default function App() {
   return (
     <AuthProvider>
-      <Gate />
+      <BrowserRouter>
+        <Gate />
+      </BrowserRouter>
     </AuthProvider>
   )
 }
