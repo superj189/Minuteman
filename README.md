@@ -21,9 +21,10 @@ See the canonical project doc (`../HD100_PROJECT_DOCUMENTATION.md`) for full bac
 | **GATE:** data loads & isolation holds | ✅ **passed** |
 | **Web app — auth + voter list** (`web/`) | ✅ working live against Supabase |
 | **Map page** — boundary + household markers + roster cards | ✅ working |
-| Contact logging + consent capture | ⏳ next |
-| Stats page (port Phase 1 charts) | ⏳ |
-| Turf cutting, SOS hourly cron, PWA | ⏳ |
+| **Contact logging + consent capture** (list & map) | ✅ working (incl. consent void) |
+| **Stats page** — live charts (`0009` stats function) | ✅ working |
+| Turf cutting | ⏳ next |
+| SOS hourly early-vote cron (build ~Oct 2026), PWA | ⏳ |
 
 See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the session log and how to resume.
 

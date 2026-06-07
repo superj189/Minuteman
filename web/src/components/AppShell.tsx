@@ -33,6 +33,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <NavLink to="/map" className={linkClass}>
                 Map
               </NavLink>
+              <NavLink to="/stats" className={linkClass}>
+                Stats
+              </NavLink>
             </nav>
           </div>
           <div className="flex items-center gap-4 text-sm">
