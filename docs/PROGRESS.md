@@ -119,6 +119,15 @@ pinned to `auth.uid()`. Open items:
    *Synergy:* #1 (likely-to-vote-early) + #2 (already-voted) together let the campaign
    stop canvassing people who've already voted and focus election-day GOTV on
    supporters who typically wait.
+3. **Phone-number login** — allow signing in with a cell number as an alternative to
+   email. Supabase Auth supports phone/OTP, but it needs an SMS provider (Twilio/etc.)
+   configured + costs per message. Decide provider + budget when we build it.
+4. **Invites send an email or text** — currently inviting just creates a pending record;
+   the manager tells the person to sign up. Make `invite_member` (or an Edge Function)
+   actually send an email invite (Supabase `inviteUserByEmail`, needs SMTP config) or an
+   SMS (needs the same SMS provider as #3).
+5. **Dark mode** — for both the web app and the installed PWA. Tailwind `dark:` variants
+   + a theme toggle (and respect the OS setting); update the PWA theme_color too.
 
 ## Dev tooling notes
 

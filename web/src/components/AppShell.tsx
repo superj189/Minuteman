@@ -13,7 +13,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-full bg-slate-100">
-      <header className="bg-white border-b border-slate-200">
+      <header
+        className="bg-white border-b border-slate-200 sticky top-0 z-[1500]"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <div className="max-w-[1400px] mx-auto px-2 sm:px-6 h-14 flex items-center gap-1 sm:gap-4">
           <span className="font-bold text-blue-700 tracking-tight shrink-0 text-[15px] sm:text-base">Minuteman</span>
           {/* Campaign name + role: only on wider screens to save phone space */}

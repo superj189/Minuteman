@@ -306,7 +306,7 @@ export default function MapPage() {
   const allTiersShown = visible.size === TIER_ORDER.length
 
   return (
-    <div className="relative" style={{ height: 'calc(100vh - 56px)' }}>
+    <div className="relative" style={{ height: 'calc(100vh - 56px - env(safe-area-inset-top))' }}>
       <MapContainer center={CENTER} zoom={12} preferCanvas style={{ height: '100%', width: '100%' }}>
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -375,7 +375,10 @@ export default function MapPage() {
       )}
 
       {/* Turf panel (collapsible) */}
-      <div className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-xl text-sm">
+      <div
+        className="absolute right-3 z-[1000] bg-white rounded-lg shadow-xl text-sm"
+        style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+      >
         <button
           onClick={() => setPanelOpen((o) => !o)}
           className="flex items-center gap-2 px-3 py-2 w-full font-semibold text-slate-900"
@@ -446,7 +449,10 @@ export default function MapPage() {
 
       {/* Household roster */}
       {selected && (
-        <div className="absolute bottom-3 left-3 z-[1000] bg-white rounded-lg shadow-xl p-4 text-sm w-80 max-w-[calc(100vw-1.5rem)] max-h-[55%] sm:max-h-[60%] overflow-y-auto">
+        <div
+          className="absolute left-3 z-[1000] bg-white rounded-lg shadow-xl p-4 text-sm w-80 max-w-[calc(100vw-1.5rem)] max-h-[55%] sm:max-h-[60%] overflow-y-auto"
+          style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+        >
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="font-semibold text-slate-900">{selected.full_address}</div>
             <button
