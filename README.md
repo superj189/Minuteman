@@ -25,7 +25,8 @@ See the canonical project doc (`../HD100_PROJECT_DOCUMENTATION.md`) for full bac
 | **Stats page** — live charts (`0009` stats function) | ✅ working |
 | **Turf cutting** — draw/assign zones, district clipping + snapping (`0010`/`0012`/`0013`) | ✅ working (merged into Map) |
 | **PWA** — installable on phones, app icon, offline app shell | ✅ working |
-| **Deploy to Vercel** (HTTPS; needed for phone install) | ⏳ next |
+| **Deployed** — live at https://minuteman.vote (Vercel, auto-deploy on push) | ✅ live |
+| Pre-real-users: re-enable email confirmation + set Supabase Site URL | ⏳ before onboarding |
 | SOS hourly early-vote cron (build ~Oct 2026) | ⏳ |
 
 See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the session log and how to resume.
