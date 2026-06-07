@@ -7,8 +7,8 @@ import boundaryRaw from '../data/hd100_boundary.json'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { TIER_ORDER, tierMeta } from '../lib/tiers'
+import { fetchAllHouseholds } from '../lib/households'
 import {
-  HOUSEHOLD_COLUMNS,
   ROSTER_COLUMNS,
   VOTER_COLUMNS,
   type Household,
@@ -24,28 +24,6 @@ const CENTER: [number, number] = [34.1238, -84.0623] // district centroid (proje
 // whole door is do-not-contact. Drives both the marker color and the tier filter.
 function displayTier(hh: Household): number {
   return hh.best_tier ?? 6
-}
-
-// Pull every geocoded household for the campaign, 1,000 rows at a time
-// (Supabase caps a single response at 1,000 rows).
-async function fetchAllHouseholds(campaignId: string): Promise<Household[]> {
-  const pageSize = 1000
-  let from = 0
-  const all: Household[] = []
-  for (;;) {
-    const { data, error } = await supabase
-      .from('households')
-      .select(HOUSEHOLD_COLUMNS)
-      .eq('campaign_id', campaignId)
-      .not('lat', 'is', null)
-      .range(from, from + pageSize - 1)
-    if (error) throw error
-    const rows = (data as unknown as Household[]) ?? []
-    all.push(...rows)
-    if (rows.length < pageSize) break
-    from += pageSize
-  }
-  return all
 }
 
 // Imperatively draws the household markers onto Leaflet's canvas. Doing this with

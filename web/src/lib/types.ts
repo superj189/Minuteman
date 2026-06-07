@@ -1,5 +1,6 @@
 // Shapes returned from Supabase. Only the columns the app currently reads are
 // typed; the voters table has many more (see migration 0003).
+import type { GeoJsonObject } from 'geojson'
 
 export interface Campaign {
   id: string
@@ -95,4 +96,26 @@ export interface NoteRow {
   id: string
   body: string
   created_at: string
+}
+
+// ── Turf cutting ──
+export interface Turf {
+  id: string
+  name: string
+  color: string
+  geojson: GeoJsonObject
+}
+
+export interface TurfAssignmentRow {
+  id: string
+  turf_id: string
+  assigned_to: string
+  status: string
+}
+
+export interface TeamMember {
+  user_id: string
+  role: MemberRole
+  full_name: string | null
+  email: string | null
 }

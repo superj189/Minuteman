@@ -23,8 +23,9 @@ See the canonical project doc (`../HD100_PROJECT_DOCUMENTATION.md`) for full bac
 | **Map page** — boundary + household markers + roster cards | ✅ working |
 | **Contact logging + consent capture** (list & map) | ✅ working (incl. consent void) |
 | **Stats page** — live charts (`0009` stats function) | ✅ working |
-| Turf cutting | ⏳ next |
-| SOS hourly early-vote cron (build ~Oct 2026), PWA | ⏳ |
+| **Turf cutting** — draw zones, assign volunteers (`0010` turf functions) | ✅ working |
+| PWA packaging (installable on phones) | ⏳ next |
+| SOS hourly early-vote cron (build ~Oct 2026) | ⏳ |
 
 See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the session log and how to resume.
 
