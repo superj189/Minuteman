@@ -27,6 +27,8 @@ supabase/.branches/
 web/shots/
 web/shoot.mjs
 scripts/make_test_user.mjs
+scripts/create_demo_data.mjs
+scripts/clear_demo_data.mjs
 
 # ── OS / editor ────────────────────────────────────────────────────
 .DS_Store

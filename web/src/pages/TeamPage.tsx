@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
-import type { MemberRole, TeamMember } from '../lib/types'
+import { VOTER_COLUMNS, type MemberRole, type TeamMember, type Voter } from '../lib/types'
+import VoterDetail from '../components/VoterDetail'
+import CanvassDrill, { type DrillMetric } from '../components/CanvassDrill'
 
 interface TurfRow {
   id: string
@@ -58,6 +60,14 @@ export default function TeamPage() {
 
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<MemberRole>('volunteer')
+  const [drill, setDrill] = useState<{ userId: string; name: string; metric: DrillMetric } | null>(null)
+  const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null)
+
+  const openVoter = async (id: string) => {
+    setDrill(null)
+    const { data } = await supabase.from('voters').select(VOTER_COLUMNS).eq('id', id).single()
+    if (data) setSelectedVoter(data as unknown as Voter)
+  }
 
   const loadMembers = useCallback(async () => {
     if (!campaignId) return
@@ -289,15 +299,24 @@ export default function TeamPage() {
                 const reach = Math.round((s.talked / s.total) * 100)
                 return (
                   <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
-                    <span>
+                    <button
+                      onClick={() => setDrill({ userId: m.user_id, name: memberName(m), metric: 'all' })}
+                      className="hover:underline"
+                    >
                       <span className="font-semibold text-slate-900">{s.total}</span> contacts
-                    </span>
-                    <span>
+                    </button>
+                    <button
+                      onClick={() => setDrill({ userId: m.user_id, name: memberName(m), metric: 'talked' })}
+                      className="hover:underline"
+                    >
                       <span className="font-semibold text-slate-900">{s.talked}</span> talked ({reach}%)
-                    </span>
-                    <span>
+                    </button>
+                    <button
+                      onClick={() => setDrill({ userId: m.user_id, name: memberName(m), metric: 'supporters' })}
+                      className="hover:underline"
+                    >
                       <span className="font-semibold text-green-700">{s.supporters}</span> supporters
-                    </span>
+                    </button>
                   </div>
                 )
               })()}
@@ -346,6 +365,18 @@ export default function TeamPage() {
           )
         })}
       </div>
+
+      {drill && (
+        <CanvassDrill
+          campaignId={campaignId}
+          userId={drill.userId}
+          name={drill.name}
+          metric={drill.metric}
+          onClose={() => setDrill(null)}
+          onOpenVoter={openVoter}
+        />
+      )}
+      {selectedVoter && <VoterDetail voter={selectedVoter} onClose={() => setSelectedVoter(null)} />}
     </div>
   )
 }
