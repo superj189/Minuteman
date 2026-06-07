@@ -12,10 +12,10 @@ See the canonical project doc (`../HD100_PROJECT_DOCUMENTATION.md`) for full bac
 
 | Stage | State |
 |---|---|
-| **Schema v1** (this commit) | ✅ delivered — **awaiting your review** |
-| Row Level Security policies | ⏳ next (migration `0006`) — built after schema is approved |
-| Import script (load HD-100 as tenant #1) | ⏳ after RLS |
-| **GATE:** deploy schema, confirm data loads | ⏳ before any frontend work |
+| **Schema v1** | ✅ delivered & approved |
+| **Row Level Security policies** (migration `0006`) | ✅ delivered — **awaiting your review** |
+| Import script (load HD-100 as tenant #1) | ⏳ next |
+| **GATE:** deploy schema + RLS, confirm data loads & isolation holds | ⏳ before any frontend work |
 | API + React frontend, contact/consent, turf, SOS cron, PWA | ⏳ after the gate |
 
 > **Review gate:** the schema is reviewed and deployed *before* any application
@@ -45,8 +45,8 @@ hd100-platform/
         ├── 0003_voters_and_households.sql     the voter roll + household grouping
         ├── 0004_contact_consent_logs.sql      contact_info, contact_logs, notes,
         │                                       consent_records, yard_signs
-        └── 0005_turf_and_sos.sql              turfs, turf_assignments, sos_imports, audit_log
-        # 0006_rls_policies.sql                ← coming next, after you review the above
+        ├── 0005_turf_and_sos.sql              turfs, turf_assignments, sos_imports, audit_log
+        └── 0006_rls_policies.sql              RLS: helper fns + per-table policies + grants
 ```
 
 > ⚠️ **Never commit voter data.** `targeted_voters.csv`, the SOS file, and the
