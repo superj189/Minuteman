@@ -40,6 +40,7 @@ import json
 import math
 import os
 import sys
+import time
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -108,11 +109,26 @@ def batch(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i+n]
 
-def upsert(client, table: str, rows: list[dict], conflict: str):
-    """Upsert a batch into Supabase, raise on error."""
-    res = client.table(table).upsert(rows, on_conflict=conflict).execute()
-    if hasattr(res, "error") and res.error:
-        raise RuntimeError(f"{table} upsert error: {res.error}")
+def upsert(client, table: str, rows: list[dict], conflict: str, retries: int = 5):
+    """Upsert a batch into Supabase, retrying on transient network errors.
+
+    Supabase occasionally drops a connection mid-stream (WinError 10054 / ReadError)
+    on a long import. Upserts are idempotent (on_conflict), so retrying a batch is safe.
+    """
+    for attempt in range(retries):
+        try:
+            res = client.table(table).upsert(rows, on_conflict=conflict).execute()
+            if hasattr(res, "error") and res.error:
+                raise RuntimeError(f"{table} upsert error: {res.error}")
+            return
+        except RuntimeError:
+            raise  # an API/data error, not transient — don't retry
+        except Exception as e:
+            if attempt == retries - 1:
+                raise
+            wait = 2 ** attempt  # 1, 2, 4, 8s backoff
+            print(f"\n  ! {table} batch failed ({type(e).__name__}); retry {attempt+1}/{retries-1} in {wait}s")
+            time.sleep(wait)
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
@@ -172,7 +188,12 @@ def main():
         has_dnc  = 6 in tiers
         targets  = [t for t in tiers if t in (1, 2, 3)]
         has_tgt  = bool(targets)
-        best     = min(targets) if targets else (min(t for t in tiers if t != 6) if not has_dnc else None)
+        # best_tier = highest-priority (lowest #) NON-DNC tier present at the door.
+        # A T6+T4/T5 door now surfaces its T4/T5 (previously fell through to NULL,
+        # which would have left those doors uncolored on the map). A door that is
+        # entirely T6 has no non-DNC tier, so best_tier stays NULL by design.
+        non_dnc  = [t for t in tiers if t != 6]
+        best     = min(non_dnc) if non_dnc else None
         is_mixed = has_tgt and has_dnc
 
         lat = grp["_lat"].dropna().mean()
