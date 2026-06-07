@@ -137,6 +137,13 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
     ).then(() => setNoteText(''))
   }
 
+  // Delete a contact log / phone-email / note. (Consent is append-only by design —
+  // it can't be deleted; toggle the permission off to record a revocation instead.)
+  const remove = (table: 'contact_logs' | 'contact_info' | 'notes', id: string) => {
+    if (!window.confirm('Delete this entry? This cannot be undone.')) return
+    run(() => supabase.from(table).delete().eq('id', id))
+  }
+
   const tm = tierMeta(voter.tier)
 
   return (
@@ -228,13 +235,16 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
             {logs.length > 0 && (
               <ul className="mt-3 space-y-1 text-xs text-slate-600">
                 {logs.map((log) => (
-                  <li key={log.id} className="flex justify-between border-t border-slate-100 pt-1">
+                  <li key={log.id} className="flex justify-between items-center border-t border-slate-100 pt-1">
                     <span>
                       {labelFor(CONTACT_OUTCOMES, log.outcome)}
                       {log.support_score != null && ` · support ${log.support_score}`}
                       {` · ${labelFor(CONTACT_CHANNELS, log.channel)}`}
                     </span>
-                    <span className="text-slate-400">{fmtDate(log.occurred_at)}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-slate-400">{fmtDate(log.occurred_at)}</span>
+                      <DeleteBtn onClick={() => remove('contact_logs', log.id)} />
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -303,11 +313,14 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
             {contacts.length > 0 && (
               <ul className="mt-3 space-y-1 text-xs text-slate-600">
                 {contacts.map((ci) => (
-                  <li key={ci.id} className="flex justify-between border-t border-slate-100 pt-1">
+                  <li key={ci.id} className="flex justify-between items-center border-t border-slate-100 pt-1">
                     <span>
                       {ci.kind === 'phone' ? '📞' : '✉️'} {ci.value}
                     </span>
-                    <span className="text-slate-400">{labelFor(CONTACT_SOURCES, ci.source)}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-slate-400">{labelFor(CONTACT_SOURCES, ci.source)}</span>
+                      <DeleteBtn onClick={() => remove('contact_info', ci.id)} />
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -330,7 +343,10 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
               <ul className="mt-3 space-y-2 text-xs text-slate-600">
                 {notes.map((n) => (
                   <li key={n.id} className="border-t border-slate-100 pt-1">
-                    <div className="text-slate-700">{n.body}</div>
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="text-slate-700 flex-1">{n.body}</div>
+                      <DeleteBtn onClick={() => remove('notes', n.id)} />
+                    </div>
                     <div className="text-slate-400">{fmtDate(n.created_at)}</div>
                   </li>
                 ))}
@@ -369,6 +385,19 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
 
 function Fact({ children }: { children: React.ReactNode }) {
   return <span className="rounded bg-slate-100 text-slate-600 px-2 py-0.5">{children}</span>
+}
+
+function DeleteBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title="Delete"
+      className="text-slate-300 hover:text-red-600 leading-none"
+      aria-label="Delete entry"
+    >
+      🗑
+    </button>
+  )
 }
 
 function fmtDate(iso: string) {
