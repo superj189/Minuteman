@@ -173,7 +173,10 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
       {/* Drawer */}
       <div className="relative w-full max-w-md bg-slate-50 h-full overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-slate-200 px-5 py-3 flex items-start justify-between">
+        <div
+          className="sticky top-0 bg-white border-b border-slate-200 px-5 py-3 flex items-start justify-between"
+          style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        >
           <div>
             <div className="font-semibold text-slate-900">
               {(voter.first_name ?? '').trim()} {(voter.last_name ?? '').trim()}
@@ -189,7 +192,7 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="p-5 space-y-5" style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}>
           {err && <div className="text-sm text-red-600 bg-red-50 rounded p-2">{err}</div>}
 
           {/* Facts */}
