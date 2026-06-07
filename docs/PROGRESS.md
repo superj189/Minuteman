@@ -92,9 +92,12 @@ pinned to `auth.uid()`. Open items:
 - [ ] **DB password hygiene** — password was rotated once, but the new connection
       string (with password) was pasted in chat. Optionally rotate again and update
       `SUPABASE_DB_URL` in `.env` directly (Notepad), never via chat.
-- [ ] **Re-enable email confirmation** before real users (toggled OFF for testing).
-- [ ] **Run Supabase Security Advisor** (Dashboard → Advisors → Security) and clear findings.
-- [ ] **Enable leaked-password protection** (Auth settings).
+- [x] **Database-level advisor findings cleared** (2026-06-07, migration `0017`):
+      all 14 tables have RLS; every function now has a pinned search_path.
+      Remaining advisor findings are auth toggles (below).
+- [x] **Demo data cleared** (2026-06-07) via `scripts/clear_demo_data.mjs`.
+- [ ] **Re-enable email confirmation** before real users (toggled OFF for testing). *(dashboard)*
+- [ ] **Enable leaked-password protection** (Auth settings). *(dashboard)*
 - [ ] Consider **invite-only signup** for production (open signup is safe today since
       membership gates all data, but invite-only is cleaner for a campaign tool).
 - Note: with the direct-supabase-js model, any authorized member can query their own
