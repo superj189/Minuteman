@@ -3,9 +3,38 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { TIER_ORDER, tierMeta } from '../lib/tiers'
 import { VOTER_COLUMNS, type Voter } from '../lib/types'
+import { CONTACT_OUTCOMES, labelFor } from '../lib/options'
 import VoterDetail from '../components/VoterDetail'
 
 const PAGE_SIZES = [50, 100, 250]
+
+const RESPONSE_FILTERS: [string, string][] = [
+  ['all', 'All responses'],
+  ['contacted', 'Contacted'],
+  ['uncontacted', 'Not yet contacted'],
+  ['support', 'Supporters (4–5)'],
+  ['oppose', 'Opposed (1–2)'],
+  ['not_home', 'Not home (last visit)'],
+]
+
+// Small colored badge summarizing a voter's latest response.
+function ResponseChip({ v }: { v: Voter }) {
+  if (!v.contact_count) return null
+  const s = v.last_support_score
+  const color = s == null ? '#64748b' : s >= 4 ? '#16a34a' : s <= 2 ? '#dc2626' : '#f59e0b'
+  const title =
+    (s != null ? `Support ${s}/5` : 'Logged') +
+    (v.last_outcome ? ` · ${labelFor(CONTACT_OUTCOMES, v.last_outcome)}` : '')
+  return (
+    <span
+      title={title}
+      className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white"
+      style={{ background: color }}
+    >
+      📋 {v.contact_count}
+    </span>
+  )
+}
 
 type SortCol = 'last_name' | 'age' | 'tier' | 'last_vote_date'
 
@@ -22,6 +51,7 @@ export default function VoterListPage() {
   const [totalAll, setTotalAll] = useState(0)
 
   const [tierFilter, setTierFilter] = useState<number | null>(null)
+  const [responseFilter, setResponseFilter] = useState('all')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<{ col: SortCol; asc: boolean }>({ col: 'last_name', asc: true })
@@ -85,6 +115,12 @@ export default function VoterListPage() {
 
     if (tierFilter) query = query.eq('tier', tierFilter)
 
+    if (responseFilter === 'contacted') query = query.gt('contact_count', 0)
+    else if (responseFilter === 'uncontacted') query = query.eq('contact_count', 0)
+    else if (responseFilter === 'support') query = query.gte('last_support_score', 4)
+    else if (responseFilter === 'oppose') query = query.lte('last_support_score', 2)
+    else if (responseFilter === 'not_home') query = query.eq('last_outcome', 'not_home')
+
     const q = sanitize(search)
     if (q) {
       query = query.or(
@@ -106,7 +142,7 @@ export default function VoterListPage() {
       setTotal(count ?? 0)
     }
     setLoading(false)
-  }, [campaignId, tierFilter, search, sort, page, pageSize])
+  }, [campaignId, tierFilter, responseFilter, search, sort, page, pageSize])
 
   useEffect(() => {
     loadRows()
@@ -176,6 +212,20 @@ export default function VoterListPage() {
           className="flex-1 min-w-[220px] rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select
+          value={responseFilter}
+          onChange={(e) => {
+            setResponseFilter(e.target.value)
+            setPage(0)
+          }}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+        >
+          {RESPONSE_FILTERS.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+        <select
           value={pageSize}
           onChange={(e) => {
             setPageSize(Number(e.target.value))
@@ -216,12 +266,15 @@ export default function VoterListPage() {
                 <div className="font-medium text-slate-900">
                   {(v.last_name ?? '').trim()}, {(v.first_name ?? '').trim()}
                 </div>
-                <span
-                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
-                  style={{ background: tm.color }}
-                >
-                  {tm.short}
-                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <ResponseChip v={v} />
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                    style={{ background: tm.color }}
+                  >
+                    {tm.short}
+                  </span>
+                </div>
               </div>
               <div className="text-xs text-slate-500 mt-0.5">
                 {v.full_address}
@@ -262,6 +315,7 @@ export default function VoterListPage() {
               </Th>
               <Th>Status</Th>
               <Th onClick={() => toggleSort('last_vote_date')}>Last Vote{sortArrow('last_vote_date')}</Th>
+              <Th title="Latest canvass response">Resp.</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -298,12 +352,15 @@ export default function VoterListPage() {
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap text-slate-600">{v.status}</td>
                   <td className="px-3 py-2 whitespace-nowrap text-slate-600">{v.last_vote_date ?? ''}</td>
+                  <td className="px-3 py-2">
+                    <ResponseChip v={v} />
+                  </td>
                 </tr>
               )
             })}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={10} className="px-3 py-8 text-center text-slate-400">
                   No voters match these filters.
                 </td>
               </tr>

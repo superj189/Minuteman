@@ -12,6 +12,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { tierMeta } from '../lib/tiers'
+import { CONTACT_OUTCOMES, labelFor } from '../lib/options'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -37,6 +38,22 @@ interface CampaignStats {
   turnout_by_race: TurnoutRow[]
   turnout_by_age: TurnoutRow[]
 }
+interface CanvassReport {
+  total_contacts: number
+  voters_contacted: number
+  outcomes: Record<string, number>
+  support: Record<string, number>
+}
+
+const SUPPORT_ORDER = ['1', '2', '3', '4', '5', '0']
+const SUPPORT_LABEL: Record<string, string> = {
+  '1': '1 Strong opp',
+  '2': '2 Lean opp',
+  '3': '3 Undecided',
+  '4': '4 Lean supp',
+  '5': '5 Strong supp',
+  '0': 'No score',
+}
 
 type ElectionKey = 'v2026r' | 'v2024r' | 'v2024g' | 'vd'
 const ELECTIONS: [ElectionKey, string][] = [
@@ -53,6 +70,7 @@ export default function StatsPage() {
   const campaignId = activeCampaign?.campaign_id
 
   const [stats, setStats] = useState<CampaignStats | null>(null)
+  const [report, setReport] = useState<CanvassReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [raceElection, setRaceElection] = useState<ElectionKey>('v2026r')
@@ -68,6 +86,9 @@ export default function StatsPage() {
       if (error) setError(error.message)
       else setStats(data as unknown as CampaignStats)
       setLoading(false)
+    })
+    supabase.rpc('canvass_report', { p_campaign_id: campaignId }).then(({ data }) => {
+      if (!cancelled) setReport((data as unknown as CanvassReport) ?? null)
     })
     return () => {
       cancelled = true
@@ -197,6 +218,57 @@ export default function StatsPage() {
           />
         </Card>
       </div>
+
+      {/* Canvassing responses */}
+      {report && (
+        <div className="mt-6">
+          <h2 className="text-lg font-bold text-slate-900 mb-1">Canvassing responses</h2>
+          <div className="text-sm text-slate-500 mb-3">
+            {report.total_contacts.toLocaleString()} contacts logged ·{' '}
+            {report.voters_contacted.toLocaleString()} voters reached
+          </div>
+          {report.total_contacts === 0 ? (
+            <div className="text-slate-400 text-sm">No contacts logged yet.</div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card title="Outcomes">
+                <Doughnut
+                  data={{
+                    labels: Object.keys(report.outcomes).map((k) => labelFor(CONTACT_OUTCOMES, k)),
+                    datasets: [
+                      { data: Object.values(report.outcomes), backgroundColor: PALETTE, borderWidth: 1 },
+                    ],
+                  }}
+                  options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }}
+                />
+              </Card>
+              <Card title="Support level">
+                <Bar
+                  data={{
+                    labels: SUPPORT_ORDER.map((k) => SUPPORT_LABEL[k]),
+                    datasets: [
+                      {
+                        label: 'Contacts',
+                        data: SUPPORT_ORDER.map((k) => report.support[k] ?? 0),
+                        backgroundColor: SUPPORT_ORDER.map((k) =>
+                          k === '0'
+                            ? '#94a3b8'
+                            : Number(k) >= 4
+                              ? '#16a34a'
+                              : Number(k) <= 2
+                                ? '#dc2626'
+                                : '#f59e0b',
+                        ),
+                      },
+                    ],
+                  }}
+                  options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }}
+                />
+              </Card>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

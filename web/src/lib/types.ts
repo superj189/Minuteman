@@ -35,11 +35,15 @@ export interface Voter {
   voted_2024_r_primary: boolean
   voted_2024_general: boolean
   voted_any_d_primary: boolean
+  contact_count: number
+  last_support_score: number | null
+  last_outcome: string | null
+  last_contacted_at: string | null
 }
 
 // Columns selected for the voter list (keeps payloads small).
 export const VOTER_COLUMNS =
-  'id,registration_number,first_name,last_name,full_address,res_city,age,race,gender,status,tier,tier_label,last_vote_date,voted_2026_r_primary,voted_2024_r_primary,voted_2024_general,voted_any_d_primary'
+  'id,registration_number,first_name,last_name,full_address,res_city,age,race,gender,status,tier,tier_label,last_vote_date,voted_2026_r_primary,voted_2024_r_primary,voted_2024_general,voted_any_d_primary,contact_count,last_support_score,last_outcome,last_contacted_at'
 
 // One row per address (the map markers).
 export interface Household {
@@ -75,6 +79,7 @@ export interface ContactLogRow {
   support_score: number | null
   channel: string
   occurred_at: string
+  contacted_by: string | null
 }
 
 export interface ContactInfoRow {

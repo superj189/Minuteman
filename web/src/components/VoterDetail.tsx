@@ -27,6 +27,7 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
   const [contacts, setContacts] = useState<ContactInfoRow[]>([])
   const [consent, setConsent] = useState<Record<string, ConsentStateRow>>({})
   const [notes, setNotes] = useState<NoteRow[]>([])
+  const [byName, setByName] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -34,7 +35,7 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
     const [l, c, cons, n] = await Promise.all([
       supabase
         .from('contact_logs')
-        .select('id,outcome,support_score,channel,occurred_at')
+        .select('id,outcome,support_score,channel,occurred_at,contacted_by')
         .eq('voter_id', voter.id)
         .order('occurred_at', { ascending: false }),
       supabase
@@ -65,6 +66,24 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
   useEffect(() => {
     loadAll()
   }, [loadAll])
+
+  // Map of user_id -> display name, to show who logged each contact.
+  useEffect(() => {
+    if (!campaignId) return
+    supabase
+      .from('campaign_members')
+      .select('user_id,profiles(full_name,email)')
+      .eq('campaign_id', campaignId)
+      .then(({ data }) => {
+        const m: Record<string, string> = {}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const r of (data as any[]) ?? []) {
+          const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+          m[r.user_id] = p?.full_name || p?.email || 'User'
+        }
+        setByName(m)
+      })
+  }, [campaignId])
 
   // ── Form state ──
   const [outcome, setOutcome] = useState('talked')
@@ -262,6 +281,9 @@ export default function VoterDetail({ voter, onClose }: { voter: Voter; onClose:
                       {labelFor(CONTACT_OUTCOMES, log.outcome)}
                       {log.support_score != null && ` · support ${log.support_score}`}
                       {` · ${labelFor(CONTACT_CHANNELS, log.channel)}`}
+                      {log.contacted_by && byName[log.contacted_by] && (
+                        <span className="text-slate-400"> · {byName[log.contacted_by]}</span>
+                      )}
                     </span>
                     <span className="flex items-center gap-2">
                       <span className="text-slate-400">{fmtDate(log.occurred_at)}</span>

@@ -19,6 +19,20 @@ interface InviteRow {
   role: MemberRole
   accepted_at: string | null
 }
+interface VolunteerStat {
+  user_id: string
+  name: string
+  total: number
+  talked: number
+  not_home: number
+  refused: number
+  supporters: number
+}
+interface CanvassReport {
+  total_contacts: number
+  voters_contacted: number
+  volunteers: VolunteerStat[]
+}
 
 const ROLES: MemberRole[] = ['manager', 'deputy', 'volunteer', 'viewer']
 
@@ -37,6 +51,7 @@ export default function TeamPage() {
   const [turfs, setTurfs] = useState<TurfRow[]>([])
   const [assignments, setAssignments] = useState<AssignmentRow[]>([])
   const [invites, setInvites] = useState<InviteRow[]>([])
+  const [report, setReport] = useState<CanvassReport | null>(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -83,12 +98,23 @@ export default function TeamPage() {
     setInvites((data as unknown as InviteRow[]) ?? [])
   }, [campaignId])
 
+  const loadReport = useCallback(async () => {
+    if (!campaignId) return
+    const { data } = await supabase.rpc('canvass_report', { p_campaign_id: campaignId })
+    setReport((data as unknown as CanvassReport) ?? null)
+  }, [campaignId])
+
   useEffect(() => {
     loadMembers()
     loadTurfs()
     loadAssignments()
     loadInvites()
-  }, [loadMembers, loadTurfs, loadAssignments, loadInvites])
+    loadReport()
+  }, [loadMembers, loadTurfs, loadAssignments, loadInvites, loadReport])
+
+  const statsByUser: Record<string, VolunteerStat> = Object.fromEntries(
+    (report?.volunteers ?? []).map((v) => [v.user_id, v]),
+  )
 
   if (!isAdmin) {
     return (
@@ -255,6 +281,26 @@ export default function TeamPage() {
                   </button>
                 )}
               </div>
+
+              {/* Hit-rate stats */}
+              {(() => {
+                const s = statsByUser[m.user_id]
+                if (!s || !s.total) return null
+                const reach = Math.round((s.talked / s.total) * 100)
+                return (
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
+                    <span>
+                      <span className="font-semibold text-slate-900">{s.total}</span> contacts
+                    </span>
+                    <span>
+                      <span className="font-semibold text-slate-900">{s.talked}</span> talked ({reach}%)
+                    </span>
+                    <span>
+                      <span className="font-semibold text-green-700">{s.supporters}</span> supporters
+                    </span>
+                  </div>
+                )
+              })()}
 
               {/* Zones for this member */}
               <div className="mt-3">
