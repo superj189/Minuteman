@@ -39,6 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase
       .from('campaign_members')
       .select('campaign_id, role, campaigns(id, name, slug, district_label)')
+      // Only THIS user's memberships — the roster is readable to all members,
+      // so without this filter we'd load everyone and misread our own role.
+      .eq('user_id', session.user.id)
       .then(({ data, error }) => {
         if (error) {
           console.error('Failed to load memberships:', error.message)
