@@ -124,6 +124,9 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [visible, setVisible] = useState<Set<number>>(new Set(TIER_ORDER))
+  // Panels start collapsed on phones so they don't cover the map; open on desktop.
+  const [legendOpen, setLegendOpen] = useState(() => !window.matchMedia('(max-width: 640px)').matches)
+  const [panelOpen, setPanelOpen] = useState(() => !window.matchMedia('(max-width: 640px)').matches)
 
   const [selected, setSelected] = useState<Household | null>(null)
   const [roster, setRoster] = useState<RosterVoter[]>([])
@@ -323,30 +326,40 @@ export default function MapPage() {
         {isAdmin && <TurfDrawer onCreate={handleCreateTurf} />}
       </MapContainer>
 
-      {/* Legend + tier filter */}
-      <div className="absolute top-3 right-3 z-[1000] bg-white/95 backdrop-blur rounded-lg shadow-lg p-2.5 sm:p-3 text-sm w-44 sm:w-56 max-w-[calc(100vw-1.5rem)]">
-        <div className="font-semibold text-slate-900 mb-2">{households.length.toLocaleString()} households</div>
-        <div className="space-y-1">
-          {TIER_ORDER.map((t) => {
-            const tm = tierMeta(t)
-            return (
-              <label
-                key={t}
-                className="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-50 rounded px-1 py-0.5"
-              >
-                <input type="checkbox" checked={visible.has(t)} onChange={() => toggleTier(t)} />
-                <span className="inline-block w-3 h-3 rounded-full" style={{ background: tm.color }} />
-                <span className="text-slate-700 flex-1">
-                  {tm.short} {tm.label}
-                </span>
-                <span className="text-slate-400 text-xs">{(counts[t] ?? 0).toLocaleString()}</span>
-              </label>
-            )
-          })}
-        </div>
-        <div className="text-[11px] text-slate-400 mt-2 leading-tight">
-          Filter the dots — zone counts below update to match.
-        </div>
+      {/* Legend + tier filter (collapsible) */}
+      <div className="absolute top-3 right-3 z-[1000] bg-white/95 backdrop-blur rounded-lg shadow-lg text-sm">
+        <button
+          onClick={() => setLegendOpen((o) => !o)}
+          className="flex items-center gap-2 px-3 py-2 w-full font-semibold text-slate-900"
+        >
+          <span>{households.length.toLocaleString()} households</span>
+          <span className="ml-auto text-slate-400">{legendOpen ? '▾' : '▸'}</span>
+        </button>
+        {legendOpen && (
+          <div className="px-3 pb-3 w-44 sm:w-56 max-w-[calc(100vw-1.5rem)]">
+            <div className="space-y-1">
+              {TIER_ORDER.map((t) => {
+                const tm = tierMeta(t)
+                return (
+                  <label
+                    key={t}
+                    className="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-50 rounded px-1 py-0.5"
+                  >
+                    <input type="checkbox" checked={visible.has(t)} onChange={() => toggleTier(t)} />
+                    <span className="inline-block w-3 h-3 rounded-full" style={{ background: tm.color }} />
+                    <span className="text-slate-700 flex-1">
+                      {tm.short} {tm.label}
+                    </span>
+                    <span className="text-slate-400 text-xs">{(counts[t] ?? 0).toLocaleString()}</span>
+                  </label>
+                )
+              })}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-2 leading-tight">
+              Filter the dots — zone counts update to match.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Loading / error */}
@@ -361,9 +374,17 @@ export default function MapPage() {
         </div>
       )}
 
-      {/* Turf panel */}
-      <div className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-xl p-3 w-56 sm:w-72 max-w-[calc(100vw-1.5rem)] max-h-[55%] sm:max-h-[70%] overflow-y-auto text-sm">
-        <h3 className="font-semibold text-slate-900 mb-1">Turf zones</h3>
+      {/* Turf panel (collapsible) */}
+      <div className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-xl text-sm">
+        <button
+          onClick={() => setPanelOpen((o) => !o)}
+          className="flex items-center gap-2 px-3 py-2 w-full font-semibold text-slate-900"
+        >
+          <span>Turf zones ({turfs.length})</span>
+          <span className="ml-auto text-slate-400">{panelOpen ? '▾' : '▸'}</span>
+        </button>
+        {panelOpen && (
+          <div className="px-3 pb-3 w-56 sm:w-72 max-w-[calc(100vw-1.5rem)] max-h-[55vh] sm:max-h-[70vh] overflow-y-auto">
         {isAdmin ? (
           <p className="text-[11px] text-slate-500 mb-2 leading-tight">
             Draw with the ▭ / polygon tools (top-left). Vertices snap to the district edge, and zones are
@@ -419,6 +440,8 @@ export default function MapPage() {
             </div>
           )
         })}
+          </div>
+        )}
       </div>
 
       {/* Household roster */}

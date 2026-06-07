@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 
 export default function AccountPage() {
-  const { session } = useAuth()
+  const { session, activeCampaign, signOut } = useAuth()
   const userId = session?.user.id
   const email = session?.user.email
 
@@ -85,6 +85,21 @@ export default function AccountPage() {
         </Field>
         <button onClick={savePassword} disabled={busy} className={btn}>
           Change password
+        </button>
+      </Section>
+
+      <Section title="Session">
+        {activeCampaign && (
+          <p className="text-xs text-slate-500 mb-3">
+            Signed in to <span className="font-medium">{activeCampaign.campaigns.name}</span> as{' '}
+            <span className="capitalize">{activeCampaign.role}</span>.
+          </p>
+        )}
+        <button
+          onClick={signOut}
+          className="rounded-lg border border-slate-300 text-slate-700 text-sm px-4 py-2 hover:bg-slate-50"
+        >
+          Sign out
         </button>
       </Section>
     </div>

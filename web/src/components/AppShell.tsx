@@ -3,19 +3,19 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 
 export default function AppShell({ children }: { children: ReactNode }) {
-  const { activeCampaign, signOut } = useAuth()
+  const { activeCampaign } = useAuth()
   const isAdmin = activeCampaign?.role === 'manager' || activeCampaign?.role === 'deputy'
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-2.5 sm:px-3 py-1.5 rounded-md text-sm font-medium transition whitespace-nowrap ${
+    `px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium transition whitespace-nowrap ${
       isActive ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
     }`
 
   return (
     <div className="min-h-full bg-slate-100">
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 h-14 flex items-center gap-2 sm:gap-4">
-          <span className="font-bold text-blue-700 tracking-tight shrink-0">Minuteman</span>
+        <div className="max-w-[1400px] mx-auto px-2 sm:px-6 h-14 flex items-center gap-1 sm:gap-4">
+          <span className="font-bold text-blue-700 tracking-tight shrink-0 text-[15px] sm:text-base">Minuteman</span>
           {/* Campaign name + role: only on wider screens to save phone space */}
           <span className="hidden md:inline text-slate-300">/</span>
           <span className="hidden md:inline font-semibold text-slate-900 truncate max-w-[160px]">
@@ -47,12 +47,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
               Account
             </NavLink>
           </nav>
-
-          <div className="ml-auto flex items-center gap-2 sm:gap-4 text-sm shrink-0">
-            <button onClick={signOut} className="text-blue-600 hover:underline whitespace-nowrap">
-              Sign out
-            </button>
-          </div>
         </div>
       </header>
       <main>{children}</main>

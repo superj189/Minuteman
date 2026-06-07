@@ -23,6 +23,11 @@ build/
 supabase/.temp/
 supabase/.branches/
 
+# ── Local-only dev/test tooling (throwaway creds, screenshots) ──────
+web/shots/
+web/shoot.mjs
+scripts/make_test_user.mjs
+
 # ── OS / editor ────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

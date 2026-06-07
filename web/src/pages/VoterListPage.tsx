@@ -202,8 +202,52 @@ export default function VoterListPage() {
 
       {error && <div className="mb-3 text-sm text-red-600">Error: {error}</div>}
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      {/* Mobile: card list (no side-scroll) */}
+      <div className="sm:hidden rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+        {rows.map((v) => {
+          const tm = tierMeta(v.tier)
+          return (
+            <button
+              key={v.id}
+              onClick={() => setSelectedVoter(v)}
+              className="w-full text-left p-3 hover:bg-blue-50 active:bg-blue-50"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-medium text-slate-900">
+                  {(v.last_name ?? '').trim()}, {(v.first_name ?? '').trim()}
+                </div>
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                  style={{ background: tm.color }}
+                >
+                  {tm.short}
+                </span>
+              </div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                {v.full_address}
+                {v.res_city ? `, ${v.res_city}` : ''}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500 mt-1.5">
+                {v.age != null && <span>Age {v.age}</span>}
+                {v.race && <span className="truncate">{v.race}</span>}
+                {v.status && <span>{v.status}</span>}
+                <span className="flex items-center gap-1 ml-auto shrink-0">
+                  <Dot on={v.voted_2026_r_primary} title="2026 R primary" />
+                  <Dot on={v.voted_2024_r_primary} title="2024 R primary" />
+                  <Dot on={v.voted_2024_general} title="2024 general" />
+                  <Dot on={v.voted_any_d_primary} title="Any D primary" danger />
+                </span>
+              </div>
+            </button>
+          )
+        })}
+        {!loading && rows.length === 0 && (
+          <div className="p-8 text-center text-slate-400">No voters match these filters.</div>
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
