@@ -306,7 +306,7 @@ export default function MapPage() {
   const allTiersShown = visible.size === TIER_ORDER.length
 
   return (
-    <div className="relative" style={{ height: 'calc(100vh - 56px - env(safe-area-inset-top))' }}>
+    <div className="relative" style={{ height: 'calc(100dvh - 56px - env(safe-area-inset-top))' }}>
       <MapContainer center={CENTER} zoom={12} preferCanvas style={{ height: '100%', width: '100%' }}>
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
