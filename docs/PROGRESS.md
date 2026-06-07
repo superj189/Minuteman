@@ -78,12 +78,30 @@ Recommended order:
 
 ---
 
-## Loose ends / reminders
+## Security review (2026-06-06)
 
-- [ ] **Rotate the Supabase DB password** if not already done (it was shared in chat
-      earlier in the session).
-- [ ] **Re-enable email confirmation** in Supabase Auth before any real users —
-      it was toggled OFF for local testing.
+Audit found: no secrets in the repo or git history; client code uses only the
+publishable/anon key (service_role never reaches the browser); all 14 tables have
+RLS; self-promotion to platform-owner is blocked; consent/contact attribution is
+pinned to `auth.uid()`. Open items:
+
+- [ ] **Rotate the Supabase DB password** — it was shared in chat; treat as compromised.
+      Settings → Database → Reset. *(highest priority)*
+- [ ] **Re-enable email confirmation** before real users (toggled OFF for testing).
+- [ ] **Deploy migration `0007_security_hardening.sql`** — pins SECURITY DEFINER
+      `search_path = ''` and tightens audit-log attribution. Written, **not yet run**
+      in Supabase. Run it in the SQL Editor next session.
+- [ ] **Run Supabase Security Advisor** (Dashboard → Advisors → Security) and clear findings.
+- [ ] **Enable leaked-password protection** (Auth settings).
+- [ ] Consider **invite-only signup** for production (open signup is safe today since
+      membership gates all data, but invite-only is cleaner for a campaign tool).
+- Note: with the direct-supabase-js model, any authorized member can query their own
+      campaign's voters via the API (RLS still isolates per campaign). Export-prevention
+      for the `viewer` role is UI-level only — revisit if a stricter analytics-only
+      viewer is wanted (flagged in `0006`).
+
+## Other reminders
+
 - [ ] The Phase 1 dashboard (`../hd100_dashboard.html`) still works standalone and is
       untouched — fine to keep using it alongside during the build.
 - [ ] No automated tests yet; verification has been manual (SQL checks + eyeballing).
