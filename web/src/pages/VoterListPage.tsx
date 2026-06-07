@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { TIER_ORDER, tierMeta } from '../lib/tiers'
 import { VOTER_COLUMNS, type Voter } from '../lib/types'
+import VoterDetail from '../components/VoterDetail'
 
 const PAGE_SIZES = [50, 100, 250]
 
@@ -31,6 +32,7 @@ export default function VoterListPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null)
 
   // Debounce the search box.
   useEffect(() => {
@@ -222,7 +224,11 @@ export default function VoterListPage() {
             {rows.map((v) => {
               const tm = tierMeta(v.tier)
               return (
-                <tr key={v.id} className="hover:bg-slate-50">
+                <tr
+                  key={v.id}
+                  onClick={() => setSelectedVoter(v)}
+                  className="hover:bg-blue-50 cursor-pointer"
+                >
                   <td className="px-3 py-2 whitespace-nowrap font-medium text-slate-900">
                     {(v.last_name ?? '').trim()}, {(v.first_name ?? '').trim()}
                   </td>
@@ -282,6 +288,10 @@ export default function VoterListPage() {
           Next →
         </button>
       </div>
+
+      {selectedVoter && (
+        <VoterDetail voter={selectedVoter} onClose={() => setSelectedVoter(null)} />
+      )}
     </div>
   )
 }

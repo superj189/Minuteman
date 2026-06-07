@@ -17,8 +17,9 @@ See the canonical project doc (`../HD100_PROJECT_DOCUMENTATION.md`) for full bac
 | **Import script** — HD-100 loaded as tenant #1 | ✅ 43,944 voters + 18,705 households, verified |
 | **GATE:** data loads & isolation holds | ✅ **passed** |
 | **Web app — auth + voter list** (`web/`) | ✅ working live against Supabase |
-| Map + Stats pages (port Phase 1 views) | ⏳ next |
-| Contact logging + consent capture | ⏳ |
+| **Map page** — boundary + household markers + roster cards | ✅ working |
+| Contact logging + consent capture | ⏳ next |
+| Stats page (port Phase 1 charts) | ⏳ |
 | Turf cutting, SOS hourly cron, PWA | ⏳ |
 
 See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the session log and how to resume.

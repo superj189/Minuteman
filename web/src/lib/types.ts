@@ -66,3 +66,32 @@ export interface RosterVoter {
 }
 
 export const ROSTER_COLUMNS = 'id,first_name,last_name,age,race,tier,status'
+
+// ── Field-collected records shown in the voter detail drawer ──
+export interface ContactLogRow {
+  id: string
+  outcome: string
+  support_score: number | null
+  channel: string
+  occurred_at: string
+}
+
+export interface ContactInfoRow {
+  id: string
+  kind: 'phone' | 'email'
+  value: string
+  source: string
+  created_at: string
+}
+
+export interface ConsentStateRow {
+  consent_type: string
+  granted: boolean
+  occurred_at: string
+}
+
+export interface NoteRow {
+  id: string
+  body: string
+  created_at: string
+}
