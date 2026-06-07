@@ -1,6 +1,8 @@
 # ── Sensitive voter data — NEVER commit PII to GitHub ──────────────
 # The SOS voter file, merged CSV, and dashboard all contain personal data.
-data/
+# NOTE: scoped to the repo-root /data/ folder so it does NOT catch the app's
+# own web/src/data/ (district boundary, etc.).
+/data/
 *.csv
 *.tsv
 hd100_dashboard.html
