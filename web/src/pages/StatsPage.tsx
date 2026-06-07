@@ -8,11 +8,15 @@ import {
   LinearScale,
   Tooltip,
   Legend,
+  type ActiveElement,
 } from 'chart.js'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { tierMeta } from '../lib/tiers'
 import { CONTACT_OUTCOMES, labelFor } from '../lib/options'
+import { VOTER_COLUMNS, type Voter } from '../lib/types'
+import VoterDetail from '../components/VoterDetail'
+import CanvassDrill, { type DrillFilter } from '../components/CanvassDrill'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -75,6 +79,14 @@ export default function StatsPage() {
   const [error, setError] = useState<string | null>(null)
   const [raceElection, setRaceElection] = useState<ElectionKey>('v2026r')
   const [ageElection, setAgeElection] = useState<ElectionKey>('v2026r')
+  const [drill, setDrill] = useState<{ title: string; filter: DrillFilter } | null>(null)
+  const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null)
+
+  const openVoter = async (id: string) => {
+    setDrill(null)
+    const { data } = await supabase.from('voters').select(VOTER_COLUMNS).eq('id', id).single()
+    if (data) setSelectedVoter(data as unknown as Voter)
+  }
 
   useEffect(() => {
     if (!campaignId) return
@@ -239,7 +251,15 @@ export default function StatsPage() {
                       { data: Object.values(report.outcomes), backgroundColor: PALETTE, borderWidth: 1 },
                     ],
                   }}
-                  options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }}
+                  options={{
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right' } },
+                    onClick: (_e, els: ActiveElement[]) => {
+                      if (!els.length) return
+                      const key = Object.keys(report.outcomes)[els[0].index]
+                      setDrill({ title: `Outcome: ${labelFor(CONTACT_OUTCOMES, key)}`, filter: { outcome: key } })
+                    },
+                  }}
                 />
               </Card>
               <Card title="Support level">
@@ -262,13 +282,35 @@ export default function StatsPage() {
                       },
                     ],
                   }}
-                  options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }}
+                  options={{
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    onClick: (_e, els: ActiveElement[]) => {
+                      if (!els.length) return
+                      const key = SUPPORT_ORDER[els[0].index]
+                      setDrill({
+                        title: `Support: ${SUPPORT_LABEL[key]}`,
+                        filter: key === '0' ? { supportNull: true } : { supportEq: Number(key) },
+                      })
+                    },
+                  }}
                 />
               </Card>
             </div>
           )}
         </div>
       )}
+
+      {drill && (
+        <CanvassDrill
+          campaignId={campaignId}
+          title={drill.title}
+          filter={drill.filter}
+          onClose={() => setDrill(null)}
+          onOpenVoter={openVoter}
+        />
+      )}
+      {selectedVoter && <VoterDetail voter={selectedVoter} onClose={() => setSelectedVoter(null)} />}
     </div>
   )
 }

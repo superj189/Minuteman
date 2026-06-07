@@ -3,7 +3,14 @@ import { supabase } from '../lib/supabase'
 import { tierMeta } from '../lib/tiers'
 import { CONTACT_OUTCOMES, labelFor } from '../lib/options'
 
-export type DrillMetric = 'all' | 'talked' | 'supporters'
+export interface DrillFilter {
+  contactedBy?: string
+  outcome?: string
+  supportGte?: number
+  supportEq?: number
+  supportNull?: boolean
+  since?: string | null
+}
 
 interface DrillRow {
   id: string
@@ -15,25 +22,17 @@ interface DrillRow {
   voters: any
 }
 
-const TITLES: Record<DrillMetric, string> = {
-  all: 'Contacts',
-  talked: 'Talked',
-  supporters: 'Supporters',
-}
-
-// A bottom-sheet list of the contacts behind a stat. Tapping a voter opens them.
+// A bottom-sheet list of the contacts behind a stat or chart segment.
 export default function CanvassDrill({
   campaignId,
-  userId,
-  name,
-  metric,
+  title,
+  filter,
   onClose,
   onOpenVoter,
 }: {
   campaignId?: string
-  userId: string
-  name: string
-  metric: DrillMetric
+  title: string
+  filter: DrillFilter
   onClose: () => void
   onOpenVoter: (id: string) => void
 }) {
@@ -46,15 +45,18 @@ export default function CanvassDrill({
       .from('contact_logs')
       .select('id,outcome,support_score,occurred_at,voter_id,voters(first_name,last_name,full_address,tier)')
       .eq('campaign_id', campaignId)
-      .eq('contacted_by', userId)
       .order('occurred_at', { ascending: false })
-    if (metric === 'talked') q = q.eq('outcome', 'talked')
-    else if (metric === 'supporters') q = q.gte('support_score', 4)
+    if (filter.contactedBy) q = q.eq('contacted_by', filter.contactedBy)
+    if (filter.outcome) q = q.eq('outcome', filter.outcome)
+    if (filter.supportGte != null) q = q.gte('support_score', filter.supportGte)
+    if (filter.supportEq != null) q = q.eq('support_score', filter.supportEq)
+    if (filter.supportNull) q = q.is('support_score', null)
+    if (filter.since) q = q.gte('occurred_at', filter.since)
     q.then(({ data }) => {
       setRows((data as unknown as DrillRow[]) ?? [])
       setLoading(false)
     })
-  }, [campaignId, userId, metric])
+  }, [campaignId, filter])
 
   return (
     <div className="fixed inset-0 z-[2100] flex justify-center items-end sm:items-center">
@@ -65,7 +67,7 @@ export default function CanvassDrill({
       >
         <div className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
           <div className="font-semibold text-slate-900">
-            {name} — {TITLES[metric]} <span className="text-slate-400">({rows.length})</span>
+            {title} <span className="text-slate-400">({rows.length})</span>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-xl leading-none" aria-label="Close">
             ×

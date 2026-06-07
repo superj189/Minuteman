@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { VOTER_COLUMNS, type MemberRole, type TeamMember, type Voter } from '../lib/types'
 import VoterDetail from '../components/VoterDetail'
-import CanvassDrill, { type DrillMetric } from '../components/CanvassDrill'
+import CanvassDrill, { type DrillFilter } from '../components/CanvassDrill'
 
 interface TurfRow {
   id: string
@@ -60,8 +60,13 @@ export default function TeamPage() {
 
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<MemberRole>('volunteer')
-  const [drill, setDrill] = useState<{ userId: string; name: string; metric: DrillMetric } | null>(null)
+  const [drill, setDrill] = useState<{ title: string; filter: DrillFilter } | null>(null)
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null)
+  const [range, setRange] = useState<'all' | '7' | '30'>('all')
+  const since = useMemo(
+    () => (range === 'all' ? null : new Date(Date.now() - Number(range) * 86400000).toISOString()),
+    [range],
+  )
 
   const openVoter = async (id: string) => {
     setDrill(null)
@@ -110,9 +115,9 @@ export default function TeamPage() {
 
   const loadReport = useCallback(async () => {
     if (!campaignId) return
-    const { data } = await supabase.rpc('canvass_report', { p_campaign_id: campaignId })
+    const { data } = await supabase.rpc('canvass_report', { p_campaign_id: campaignId, p_since: since })
     setReport((data as unknown as CanvassReport) ?? null)
-  }, [campaignId])
+  }, [campaignId, since])
 
   useEffect(() => {
     loadMembers()
@@ -259,6 +264,20 @@ export default function TeamPage() {
         )}
       </div>
 
+      {/* Stats period */}
+      <div className="flex items-center justify-end gap-2 mb-2 text-sm">
+        <span className="text-slate-500">Hit-rates for:</span>
+        <select
+          value={range}
+          onChange={(e) => setRange(e.target.value as 'all' | '7' | '30')}
+          className="rounded-lg border border-slate-300 px-2 py-1 bg-white"
+        >
+          <option value="all">All time</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
+      </div>
+
       {/* Members */}
       <div className="space-y-3">
         {members.map((m) => {
@@ -300,19 +319,34 @@ export default function TeamPage() {
                 return (
                   <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
                     <button
-                      onClick={() => setDrill({ userId: m.user_id, name: memberName(m), metric: 'all' })}
+                      onClick={() =>
+                        setDrill({
+                          title: `${memberName(m)} — Contacts`,
+                          filter: { contactedBy: m.user_id, since },
+                        })
+                      }
                       className="hover:underline"
                     >
                       <span className="font-semibold text-slate-900">{s.total}</span> contacts
                     </button>
                     <button
-                      onClick={() => setDrill({ userId: m.user_id, name: memberName(m), metric: 'talked' })}
+                      onClick={() =>
+                        setDrill({
+                          title: `${memberName(m)} — Talked`,
+                          filter: { contactedBy: m.user_id, outcome: 'talked', since },
+                        })
+                      }
                       className="hover:underline"
                     >
                       <span className="font-semibold text-slate-900">{s.talked}</span> talked ({reach}%)
                     </button>
                     <button
-                      onClick={() => setDrill({ userId: m.user_id, name: memberName(m), metric: 'supporters' })}
+                      onClick={() =>
+                        setDrill({
+                          title: `${memberName(m)} — Supporters`,
+                          filter: { contactedBy: m.user_id, supportGte: 4, since },
+                        })
+                      }
                       className="hover:underline"
                     >
                       <span className="font-semibold text-green-700">{s.supporters}</span> supporters
@@ -369,9 +403,8 @@ export default function TeamPage() {
       {drill && (
         <CanvassDrill
           campaignId={campaignId}
-          userId={drill.userId}
-          name={drill.name}
-          metric={drill.metric}
+          title={drill.title}
+          filter={drill.filter}
           onClose={() => setDrill(null)}
           onOpenVoter={openVoter}
         />
