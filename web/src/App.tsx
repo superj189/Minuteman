@@ -5,6 +5,8 @@ import AppShell from './components/AppShell'
 import VoterListPage from './pages/VoterListPage'
 import MapPage from './pages/MapPage'
 import StatsPage from './pages/StatsPage'
+import TeamPage from './pages/TeamPage'
+import AccountPage from './pages/AccountPage'
 
 function Gate() {
   const { session, loading, memberships } = useAuth()
@@ -36,6 +38,8 @@ function Gate() {
         <Route path="/" element={<VoterListPage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/stats" element={<StatsPage />} />
+        <Route path="/team" element={<TeamPage />} />
+        <Route path="/account" element={<AccountPage />} />
         <Route path="*" element={<VoterListPage />} />
       </Routes>
     </AppShell>

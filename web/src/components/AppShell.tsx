@@ -3,7 +3,8 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 
 export default function AppShell({ children }: { children: ReactNode }) {
-  const { session, activeCampaign, signOut } = useAuth()
+  const { activeCampaign, signOut } = useAuth()
+  const isAdmin = activeCampaign?.role === 'manager' || activeCampaign?.role === 'deputy'
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-2.5 sm:px-3 py-1.5 rounded-md text-sm font-medium transition whitespace-nowrap ${
@@ -37,12 +38,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <NavLink to="/stats" className={linkClass}>
               Stats
             </NavLink>
+            {isAdmin && (
+              <NavLink to="/team" className={linkClass}>
+                Team
+              </NavLink>
+            )}
+            <NavLink to="/account" className={linkClass}>
+              Account
+            </NavLink>
           </nav>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-4 text-sm shrink-0">
-            <span className="hidden md:inline text-slate-500 truncate max-w-[180px]">
-              {session?.user.email}
-            </span>
             <button onClick={signOut} className="text-blue-600 hover:underline whitespace-nowrap">
               Sign out
             </button>
