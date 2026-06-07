@@ -26,8 +26,6 @@ const boundary = boundaryRaw as GeoJsonObject
 const CENTER: [number, number] = [34.1238, -84.0623] // district centroid (project doc §3)
 const PALETTE = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d']
 
-type Mode = 'canvass' | 'turf'
-
 function displayTier(hh: Household): number {
   return hh.best_tier ?? 6
 }
@@ -38,6 +36,7 @@ function memberName(m: TeamMember | undefined): string {
 }
 
 // Colored household markers, drawn imperatively on the canvas for speed.
+// pmIgnore keeps Geoman from trying to snap to / edit the 18k dots.
 function HouseholdLayer({
   households,
   visible,
@@ -55,13 +54,16 @@ function HouseholdLayer({
       const dt = displayTier(hh)
       if (!visible.has(dt)) continue
       const color = tierMeta(dt).color
-      const marker = L.circleMarker([hh.lat, hh.lon], {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const opts: any = {
         radius: 3 + Math.min(hh.voter_count, 8) * 0.7,
         color,
         fillColor: color,
         fillOpacity: 0.85,
         weight: 0,
-      })
+        pmIgnore: true,
+      }
+      const marker = L.circleMarker([hh.lat, hh.lon], opts)
       marker.on('click', () => onSelect(hh))
       marker.addTo(group)
     }
@@ -72,7 +74,8 @@ function HouseholdLayer({
   return null
 }
 
-// Geoman draw controls (admins, turf mode). Reports finished polygons.
+// Geoman draw controls (admins). Snapping magnetizes vertices to the district
+// boundary and existing zone edges. Reports finished polygons.
 function TurfDrawer({ onCreate }: { onCreate: (geom: GeoJsonObject) => void }) {
   const map = useMap()
   const cbRef = useRef(onCreate)
@@ -80,6 +83,7 @@ function TurfDrawer({ onCreate }: { onCreate: (geom: GeoJsonObject) => void }) {
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pm = (map as any).pm
+    pm.setGlobalOptions({ snappable: true, snapDistance: 25, snapSegment: true })
     pm.addControls({
       position: 'topleft',
       drawPolygon: true,
@@ -98,7 +102,7 @@ function TurfDrawer({ onCreate }: { onCreate: (geom: GeoJsonObject) => void }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handler = (e: any) => {
       const geom = e.layer.toGeoJSON().geometry as GeoJsonObject
-      map.removeLayer(e.layer) // re-rendered from the DB (clipped to the district) after saving
+      map.removeLayer(e.layer) // re-rendered from the DB (clipped to district) after saving
       cbRef.current(geom)
     }
     map.on('pm:create', handler)
@@ -116,8 +120,6 @@ export default function MapPage() {
   const myUserId = session?.user.id
   const isAdmin = activeCampaign?.role === 'manager' || activeCampaign?.role === 'deputy'
 
-  const [mode, setMode] = useState<Mode>('canvass')
-
   const [households, setHouseholds] = useState<Household[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -130,7 +132,7 @@ export default function MapPage() {
 
   // Turf state
   const [turfs, setTurfs] = useState<Turf[]>([])
-  const [turfCounts, setTurfCounts] = useState<Record<string, number>>({})
+  const [breakdowns, setBreakdowns] = useState<Record<string, Record<string, number>>>({})
   const [assignments, setAssignments] = useState<TurfAssignmentRow[]>([])
   const [members, setMembers] = useState<TeamMember[]>([])
   const [turfBusy, setTurfBusy] = useState(false)
@@ -185,11 +187,11 @@ export default function MapPage() {
     setTurfs(list)
     const entries = await Promise.all(
       list.map(async (t) => {
-        const { data: c } = await supabase.rpc('turf_voter_count', { p_turf_id: t.id })
-        return [t.id, (c as number) ?? 0] as const
+        const { data: b } = await supabase.rpc('turf_tier_breakdown', { p_turf_id: t.id })
+        return [t.id, (b as Record<string, number>) ?? {}] as const
       }),
     )
-    setTurfCounts(Object.fromEntries(entries))
+    setBreakdowns(Object.fromEntries(entries))
   }, [campaignId])
 
   const loadAssignments = useCallback(async () => {
@@ -293,6 +295,13 @@ export default function MapPage() {
     setTurfBusy(false)
   }
 
+  // Voter counts for a zone, respecting the current tier filter.
+  const filteredCount = (b: Record<string, number> = {}) =>
+    TIER_ORDER.reduce((s, t) => (visible.has(t) ? s + (b[t] ?? 0) : s), 0)
+  const totalCount = (b: Record<string, number> = {}) =>
+    Object.values(b).reduce((a, c) => a + c, 0)
+  const allTiersShown = visible.size === TIER_ORDER.length
+
   return (
     <div className="relative" style={{ height: 'calc(100vh - 56px)' }}>
       <MapContainer center={CENTER} zoom={12} preferCanvas style={{ height: '100%', width: '100%' }}>
@@ -302,33 +311,17 @@ export default function MapPage() {
         />
         <GeoJSON data={boundary} style={{ color: '#60a5fa', weight: 2, dashArray: '6', fillOpacity: 0 }} />
         {!loading && <HouseholdLayer households={households} visible={visible} onSelect={handleSelect} />}
-        {mode === 'turf' &&
-          turfs.map((t) => (
-            <GeoJSON
-              key={t.id}
-              data={t.geojson}
-              style={{ color: t.color, weight: 2, fillColor: t.color, fillOpacity: 0.18 }}
-            >
-              <Tooltip sticky>{t.name}</Tooltip>
-            </GeoJSON>
-          ))}
-        {mode === 'turf' && isAdmin && <TurfDrawer onCreate={handleCreateTurf} />}
-      </MapContainer>
-
-      {/* Mode toggle */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white rounded-lg shadow-lg p-1 flex gap-1 text-sm font-medium">
-        {(['canvass', 'turf'] as Mode[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`px-4 py-1.5 rounded-md capitalize ${
-              mode === m ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
-            }`}
+        {turfs.map((t) => (
+          <GeoJSON
+            key={t.id}
+            data={t.geojson}
+            style={{ color: t.color, weight: 2, fillColor: t.color, fillOpacity: 0.18 }}
           >
-            {m}
-          </button>
+            <Tooltip sticky>{t.name}</Tooltip>
+          </GeoJSON>
         ))}
-      </div>
+        {isAdmin && <TurfDrawer onCreate={handleCreateTurf} />}
+      </MapContainer>
 
       {/* Legend + tier filter */}
       <div className="absolute top-3 right-3 z-[1000] bg-white/95 backdrop-blur rounded-lg shadow-lg p-3 text-sm w-56">
@@ -352,9 +345,7 @@ export default function MapPage() {
           })}
         </div>
         <div className="text-[11px] text-slate-400 mt-2 leading-tight">
-          {mode === 'turf'
-            ? 'Filter which voters you see while drawing zones.'
-            : 'Each dot is one address, colored by its best target.'}
+          Filter the dots — zone counts below update to match.
         </div>
       </div>
 
@@ -370,65 +361,68 @@ export default function MapPage() {
         </div>
       )}
 
-      {/* Turf panel (turf mode) */}
-      {mode === 'turf' && (
-        <div className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-xl p-3 w-72 max-h-[70%] overflow-y-auto text-sm">
-          <h3 className="font-semibold text-slate-900 mb-1">Turf zones</h3>
-          {isAdmin ? (
-            <p className="text-[11px] text-slate-500 mb-2 leading-tight">
-              Draw with the ▭ / polygon tools (top-left). Overshoot the district edge — zones snap to the
-              district line automatically.
-            </p>
-          ) : (
-            <p className="text-[11px] text-slate-500 mb-2">Zones assigned to your team.</p>
-          )}
-          {turfError && <div className="text-xs text-red-600 bg-red-50 rounded p-2 mb-2">{turfError}</div>}
-          {turfBusy && <div className="text-xs text-slate-400 mb-2">Saving…</div>}
-          {turfs.length === 0 && <div className="text-slate-400">No turf drawn yet.</div>}
-          {turfs.map((t) => {
-            const a = assignments.find((x) => x.turf_id === t.id)
-            return (
-              <div key={t.id} className="border border-slate-200 rounded-lg p-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: t.color }} />
-                  <span className="font-medium text-slate-900 flex-1">{t.name}</span>
-                  {isAdmin && (
-                    <button onClick={() => deleteTurf(t.id)} title="Delete turf" className="text-slate-300 hover:text-red-600">
-                      🗑
-                    </button>
-                  )}
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  {turfCounts[t.id] != null ? turfCounts[t.id].toLocaleString() : '…'} voters
-                </div>
-                {isAdmin ? (
-                  <select
-                    value={a?.assigned_to ?? ''}
-                    onChange={(e) => assignTurf(t.id, e.target.value)}
-                    className="mt-1.5 w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white"
-                  >
-                    <option value="">Unassigned</option>
-                    {members.map((m) => (
-                      <option key={m.user_id} value={m.user_id}>
-                        {memberName(m)} ({m.role})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  a && (
-                    <div className="text-xs text-slate-600 mt-1">
-                      Assigned to {memberName(members.find((m) => m.user_id === a.assigned_to))}
-                    </div>
-                  )
+      {/* Turf panel */}
+      <div className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-xl p-3 w-72 max-h-[70%] overflow-y-auto text-sm">
+        <h3 className="font-semibold text-slate-900 mb-1">Turf zones</h3>
+        {isAdmin ? (
+          <p className="text-[11px] text-slate-500 mb-2 leading-tight">
+            Draw with the ▭ / polygon tools (top-left). Vertices snap to the district edge, and zones are
+            trimmed to the district line automatically.
+          </p>
+        ) : (
+          <p className="text-[11px] text-slate-500 mb-2">Zones assigned to your team.</p>
+        )}
+        {turfError && <div className="text-xs text-red-600 bg-red-50 rounded p-2 mb-2">{turfError}</div>}
+        {turfBusy && <div className="text-xs text-slate-400 mb-2">Saving…</div>}
+        {turfs.length === 0 && <div className="text-slate-400">No turf drawn yet.</div>}
+        {turfs.map((t) => {
+          const a = assignments.find((x) => x.turf_id === t.id)
+          const b = breakdowns[t.id]
+          const f = filteredCount(b)
+          const tot = totalCount(b)
+          return (
+            <div key={t.id} className="border border-slate-200 rounded-lg p-2 mb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: t.color }} />
+                <span className="font-medium text-slate-900 flex-1">{t.name}</span>
+                {isAdmin && (
+                  <button onClick={() => deleteTurf(t.id)} title="Delete turf" className="text-slate-300 hover:text-red-600">
+                    🗑
+                  </button>
                 )}
               </div>
-            )
-          })}
-        </div>
-      )}
+              <div className="text-xs text-slate-600 mt-0.5">
+                <span className="font-semibold">{b ? f.toLocaleString() : '…'}</span>
+                {b && !allTiersShown && <span className="text-slate-400"> of {tot.toLocaleString()}</span>} voters
+                {!allTiersShown && <span className="text-slate-400"> (filtered)</span>}
+              </div>
+              {isAdmin ? (
+                <select
+                  value={a?.assigned_to ?? ''}
+                  onChange={(e) => assignTurf(t.id, e.target.value)}
+                  className="mt-1.5 w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white"
+                >
+                  <option value="">Unassigned</option>
+                  {members.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {memberName(m)} ({m.role})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                a && (
+                  <div className="text-xs text-slate-600 mt-1">
+                    Assigned to {memberName(members.find((m) => m.user_id === a.assigned_to))}
+                  </div>
+                )
+              )}
+            </div>
+          )
+        })}
+      </div>
 
-      {/* Household roster (canvass mode) */}
-      {mode === 'canvass' && selected && (
+      {/* Household roster */}
+      {selected && (
         <div className="absolute bottom-3 left-3 z-[1000] bg-white rounded-lg shadow-xl p-4 text-sm w-80 max-h-[60%] overflow-y-auto">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="font-semibold text-slate-900">{selected.full_address}</div>
