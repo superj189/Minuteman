@@ -78,6 +78,21 @@ Recommended order:
 
 ---
 
+## ⚠️ MUST DO BEFORE LAUNCH: upgrade Supabase off the free tier
+
+**Free-tier Supabase projects auto-pause after ~1 week of inactivity.** This happened
+on 2026-06-07: the project paused, its API hostname stopped resolving entirely, and the
+app went blank for everyone (it looked like a front-end bug — it wasn't). Restoring from
+the dashboard brought it back with **zero data loss**, but a pause during early voting or
+GOTV weekend would take the whole field team offline at the worst possible moment.
+
+**Action:** upgrade the Supabase project to **Pro (~$25/mo)** before going live. Paid
+projects never auto-pause. Treat this as a hard requirement, not an optimization.
+
+*Debugging note for future me:* if the app goes blank, check Supabase reachability FIRST
+(`nslookup <ref>.supabase.co` — a non-existent domain means the project is paused).
+Don't chase front-end/cache theories before ruling this out.
+
 ## Security review (2026-06-06)
 
 Audit found: no secrets in the repo or git history; client code uses only the
