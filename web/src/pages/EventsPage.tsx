@@ -12,6 +12,7 @@ interface ClubEvent {
   location: string | null
   description: string | null
   checkin_open: boolean
+  is_public: boolean
 }
 
 interface Attendance {
@@ -38,9 +39,9 @@ const toLocalInput = (iso: string) => {
 }
 
 export default function EventsPage() {
-  const { activeCampaign } = useAuth()
+  const { activeCampaign, isBoard } = useAuth()
   const campaignId = activeCampaign?.campaign_id
-  const canSee = activeCampaign?.role !== 'viewer'
+  const canSee = isBoard
 
   const [events, setEvents] = useState<ClubEvent[]>([])
   const [attendance, setAttendance] = useState<Attendance[]>([])
@@ -52,7 +53,7 @@ export default function EventsPage() {
   const load = useCallback(async () => {
     if (!campaignId) return
     const [ev, at, mem] = await Promise.all([
-      supabase.from('events').select('id,name,starts_at,location,description,checkin_open').eq('campaign_id', campaignId).order('starts_at', { ascending: false }),
+      supabase.from('events').select('id,name,starts_at,location,description,checkin_open,is_public').eq('campaign_id', campaignId).order('starts_at', { ascending: false }),
       supabase.from('event_attendance').select('id,event_id,member_id,source,was_new,checked_in_at').eq('campaign_id', campaignId),
       supabase.from('members').select('id,first_name,last_name,email').eq('campaign_id', campaignId).order('last_name').limit(5000),
     ])
@@ -191,6 +192,7 @@ function EventList({
                   </div>
                 </div>
                 <div className="flex gap-2 mt-2 text-[11px]">
+                  {e.is_public && <span className="rounded-full bg-slate-700 text-white px-2 py-0.5">On homepage</span>}
                   {e.checkin_open && <span className="rounded-full bg-green-600 text-white px-2 py-0.5">Check-in open</span>}
                   {c.fresh > 0 && <span className="rounded-full bg-blue-600 text-white px-2 py-0.5">{c.fresh} new</span>}
                 </div>
@@ -446,6 +448,7 @@ function EventEditor({
   const [when, setWhen] = useState(event ? toLocalInput(event.starts_at) : '')
   const [location, setLocation] = useState(event?.location ?? '')
   const [description, setDescription] = useState(event?.description ?? '')
+  const [isPublic, setIsPublic] = useState(event?.is_public ?? true)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -457,6 +460,7 @@ function EventEditor({
       starts_at: new Date(when).toISOString(),
       location: location.trim() || null,
       description: description.trim() || null,
+      is_public: isPublic,
     }
     if (event) {
       const { error } = await supabase.from('events').update(row).eq('id', event.id)
@@ -504,6 +508,11 @@ function EventEditor({
         <Field label="Notes (optional)">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={input} />
         </Field>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="h-4 w-4 accent-blue-600" />
+          Show on the public homepage
+        </label>
+        <p className="text-[11px] text-slate-400 -mt-2">Members always see every event. Untick for board-only or private events.</p>
         {err && <p className="text-sm text-red-600">{err}</p>}
         <div className="flex items-center gap-2 pt-1">
           <button onClick={save} disabled={busy} className="rounded-lg bg-blue-600 text-white text-sm px-4 py-2 hover:bg-blue-700 disabled:opacity-50">

@@ -18,7 +18,7 @@ export interface ClubMember {
   consent_text: string | null
   consent_at: string | null
   status: MemberStatus
-  source: 'signup_page' | 'event' | 'manual' | 'import'
+  source: 'signup_page' | 'event' | 'manual' | 'import' | 'account'
   notes: string | null
   created_at: string
 }
@@ -46,6 +46,7 @@ export const SOURCE_LABELS: Record<ClubMember['source'], string> = {
   event: 'Event',
   manual: 'Added by officer',
   import: 'Imported',
+  account: 'Created an account',
 }
 
 export function ageFrom(birth: string | null): number | null {

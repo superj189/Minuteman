@@ -11,9 +11,9 @@ const COLUMNS =
 type Reach = 'all' | 'email' | 'sms'
 
 export default function MembersPage() {
-  const { activeCampaign } = useAuth()
+  const { activeCampaign, isBoard } = useAuth()
   const campaignId = activeCampaign?.campaign_id
-  const canSee = activeCampaign?.role !== 'viewer'
+  const canSee = isBoard
 
   const [members, setMembers] = useState<ClubMember[]>([])
   const [eventCounts, setEventCounts] = useState<Record<string, number>>({})

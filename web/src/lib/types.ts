@@ -9,7 +9,7 @@ export interface Campaign {
   district_label: string | null
 }
 
-export type MemberRole = 'manager' | 'deputy' | 'volunteer' | 'viewer'
+export type MemberRole = 'manager' | 'deputy' | 'member' | 'volunteer' | 'viewer'
 
 export interface Membership {
   campaign_id: string

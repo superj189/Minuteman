@@ -1,0 +1,13 @@
+-- ════════════════════════════════════════════════════════════════════════
+-- 0020_member_role.sql
+-- Adds the 'member' role: a regular club member with a login. Kept in its own
+-- file because Postgres can't use a new enum value in the same transaction
+-- that adds it (0021 uses it).
+--
+-- Role meanings for the club (labels shown in the app):
+--   manager   → Chairman   (everything, incl. who is on the board)
+--   deputy    → Board      (all org data + organizing tools)
+--   member    → Member     (member area; extra pages only if granted)
+--   volunteer / viewer → legacy campaign roles, unused by the club
+-- ════════════════════════════════════════════════════════════════════════
+alter type member_role add value if not exists 'member';

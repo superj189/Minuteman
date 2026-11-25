@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { getTheme, setTheme, type Theme } from '../lib/theme'
+import { ROLE_LABELS } from '../lib/access'
+import { consentText, EMAIL_CONSENT, SMS_CONSENT } from '../lib/consent'
 
 export default function AccountPage() {
   const { session, activeCampaign, signOut } = useAuth()
@@ -72,6 +74,8 @@ export default function AccountPage() {
         </button>
       </Section>
 
+      {activeCampaign && <ClubProfile campaignId={activeCampaign.campaign_id} />}
+
       <Section title="Appearance">
         <div className="flex gap-2">
           {(['light', 'dark', 'system'] as Theme[]).map((t) => (
@@ -118,7 +122,7 @@ export default function AccountPage() {
         {activeCampaign && (
           <p className="text-xs text-slate-500 mb-3">
             Signed in to <span className="font-medium">{activeCampaign.campaigns.name}</span> as{' '}
-            <span className="capitalize">{activeCampaign.role}</span>.
+            <span>{ROLE_LABELS[activeCampaign.role]}</span>.
           </p>
         )}
         <button
@@ -135,6 +139,100 @@ export default function AccountPage() {
 const input =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 const btn = 'rounded-lg bg-blue-600 text-white text-sm px-4 py-2 hover:bg-blue-700 disabled:opacity-50'
+
+// The member's own record in the club: contact info and email/text preferences.
+function ClubProfile({ campaignId }: { campaignId: string }) {
+  const [loaded, setLoaded] = useState(false)
+  const [linked, setLinked] = useState(false)
+  const [first, setFirst] = useState('')
+  const [last, setLast] = useState('')
+  const [phone, setPhone] = useState('')
+  const [birth, setBirth] = useState('')
+  const [zip, setZip] = useState('')
+  const [emailOk, setEmailOk] = useState(false)
+  const [smsOk, setSmsOk] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.rpc('my_profile', { p_campaign_id: campaignId }).then(({ data }) => {
+      const r = Array.isArray(data) ? data[0] : null
+      if (r) {
+        setLinked(true)
+        setFirst(r.first_name ?? '')
+        setLast(r.last_name ?? '')
+        setPhone(r.phone ?? '')
+        setBirth(r.birth_date ?? '')
+        setZip(r.zip ?? '')
+        setEmailOk(!!r.email_opt_in)
+        setSmsOk(!!r.sms_opt_in)
+      }
+      setLoaded(true)
+    })
+  }, [campaignId])
+
+  const save = async () => {
+    setMsg(null)
+    setErr(null)
+    setBusy(true)
+    const { error } = await supabase.rpc('update_my_profile', {
+      p_campaign_id: campaignId,
+      p_first_name: first,
+      p_last_name: last,
+      p_phone: phone || null,
+      p_birth_date: birth || null,
+      p_zip: zip || null,
+      p_email_opt_in: emailOk,
+      p_sms_opt_in: smsOk,
+      p_consent_text: consentText(emailOk, smsOk),
+    })
+    setBusy(false)
+    if (error) setErr(error.message)
+    else setMsg('Profile saved.')
+  }
+
+  if (!loaded || !linked) return null
+
+  return (
+    <Section title="My club profile">
+      {msg && <div className="mb-3 text-sm text-green-700 bg-green-50 rounded p-2">{msg}</div>}
+      {err && <div className="mb-3 text-sm text-red-600 bg-red-50 rounded p-2">{err}</div>}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="First name">
+          <input value={first} onChange={(e) => setFirst(e.target.value)} className={input} />
+        </Field>
+        <Field label="Last name">
+          <input value={last} onChange={(e) => setLast(e.target.value)} className={input} />
+        </Field>
+      </div>
+      <Field label="Mobile phone">
+        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={input} />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Date of birth">
+          <input type="date" value={birth} onChange={(e) => setBirth(e.target.value)} className={input} />
+        </Field>
+        <Field label="ZIP code">
+          <input value={zip} maxLength={5} inputMode="numeric" onChange={(e) => setZip(e.target.value)} className={input} />
+        </Field>
+      </div>
+      <div className="space-y-2 mb-3">
+        <label className="flex items-start gap-2 text-xs text-slate-600">
+          <input type="checkbox" checked={emailOk} onChange={(e) => setEmailOk(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-blue-600" />
+          <span>{EMAIL_CONSENT}</span>
+        </label>
+        <label className="flex items-start gap-2 text-xs text-slate-600">
+          <input type="checkbox" checked={smsOk} onChange={(e) => setSmsOk(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-blue-600" />
+          <span>{SMS_CONSENT}</span>
+        </label>
+      </div>
+      <button onClick={save} disabled={busy} className={btn}>
+        Save profile
+      </button>
+    </Section>
+  )
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
