@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
+import { EMAIL_CONSENT, SMS_CONSENT, consentText } from '../lib/consent'
 
 // Public sign-up form. No login: it can only call the two public database
 // functions (public_org, public_join) and can never read the member list.
@@ -16,9 +17,6 @@ const INTERESTS = [
 
 const HOW_HEARD = ['A friend', 'Instagram', 'Facebook', 'X / Twitter', 'An event', 'Email or text', 'Other']
 
-// The exact wording people agree to. Saved with each sign-up as proof of consent.
-const EMAIL_CONSENT = `Yes, email me news and event invites from the ${BRAND.name}. I can unsubscribe anytime.`
-const SMS_CONSENT = `Yes, text me updates and event reminders from the ${BRAND.name} at the number above. Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help. Agreeing is not required to join.`
 
 export default function JoinPage() {
   const { slug = BRAND.slug } = useParams()
@@ -64,8 +62,6 @@ export default function JoinPage() {
     if (digits && !(digits.length === 10 || (digits.length === 11 && digits.startsWith('1'))))
       return setError('Please enter a 10-digit phone number.')
 
-    const consentParts = [emailOk ? EMAIL_CONSENT : null, smsOk ? SMS_CONSENT : null].filter(Boolean)
-
     setBusy(true)
     const { error } = await supabase.rpc('public_join', {
       p_slug: slug,
@@ -79,7 +75,7 @@ export default function JoinPage() {
       p_how_heard: howHeard || null,
       p_email_opt_in: emailOk,
       p_sms_opt_in: smsOk,
-      p_consent_text: consentParts.length ? consentParts.join(' | ') : null,
+      p_consent_text: consentText(emailOk, smsOk),
     })
     setBusy(false)
     if (error) setError(error.message)

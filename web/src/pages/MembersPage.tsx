@@ -16,6 +16,7 @@ export default function MembersPage() {
   const canSee = activeCampaign?.role !== 'viewer'
 
   const [members, setMembers] = useState<ClubMember[]>([])
+  const [eventCounts, setEventCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -34,6 +35,10 @@ export default function MembersPage() {
       .limit(5000)
     if (error) setError(error.message)
     else setMembers((data as ClubMember[]) ?? [])
+    const { data: att } = await supabase.from('event_attendance').select('member_id').eq('campaign_id', campaignId)
+    const counts: Record<string, number> = {}
+    for (const a of (att as { member_id: string }[]) ?? []) counts[a.member_id] = (counts[a.member_id] ?? 0) + 1
+    setEventCounts(counts)
     setLoading(false)
   }, [campaignId])
 
@@ -184,6 +189,7 @@ export default function MembersPage() {
                   <div className="text-xs text-slate-400 mt-1 flex gap-2">
                     {ageFrom(m.birth_date) != null && <span>Age {ageFrom(m.birth_date)}</span>}
                     {m.zip && <span>{m.zip}</span>}
+                    {(eventCounts[m.id] ?? 0) > 0 && <span>{eventCounts[m.id]} events</span>}
                     <OptIns m={m} />
                   </div>
                 </button>
@@ -203,6 +209,7 @@ export default function MembersPage() {
                   <th className="px-3 py-2 font-medium">ZIP</th>
                   <th className="px-3 py-2 font-medium">Status</th>
                   <th className="px-3 py-2 font-medium">Can contact</th>
+                  <th className="px-3 py-2 font-medium">Events</th>
                   <th className="px-3 py-2 font-medium">Joined</th>
                 </tr>
               </thead>
@@ -222,6 +229,7 @@ export default function MembersPage() {
                     <td className="px-3 py-2 text-xs">
                       <OptIns m={m} />
                     </td>
+                    <td className="px-3 py-2 text-slate-600 tabular-nums">{eventCounts[m.id] ?? 0}</td>
                     <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{new Date(m.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}

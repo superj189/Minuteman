@@ -26,11 +26,22 @@ export default function MemberDrawer({ member, onClose, onSaved }: Props) {
   const [emailOk, setEmailOk] = useState(member?.email_opt_in ?? false)
   const [smsOk, setSmsOk] = useState(member?.sms_opt_in ?? false)
   const [history, setHistory] = useState<ConsentEvent[]>([])
+  const [attended, setAttended] = useState<{ name: string; starts_at: string }[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
     if (!member) return
+    supabase
+      .from('event_attendance')
+      .select('id,events(name,starts_at)')
+      .eq('member_id', member.id)
+      .then(({ data }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rows = ((data as any[]) ?? []).map((r) => (Array.isArray(r.events) ? r.events[0] : r.events)).filter(Boolean)
+        rows.sort((a, b) => b.starts_at.localeCompare(a.starts_at))
+        setAttended(rows)
+      })
     supabase
       .from('member_consent_events')
       .select('id,channel,granted,source,occurred_at')
@@ -165,6 +176,23 @@ export default function MemberDrawer({ member, onClose, onSaved }: Props) {
           <Field label="Notes">
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className={input} />
           </Field>
+
+          {!isNew && (
+            <div className="rounded-lg border border-slate-200 p-3">
+              <div className="text-xs font-semibold text-slate-700 mb-1">Events attended ({attended.length})</div>
+              {attended.length === 0 ? (
+                <p className="text-[11px] text-slate-400">None yet.</p>
+              ) : (
+                <ul className="space-y-0.5 text-xs text-slate-600">
+                  {attended.map((e, i) => (
+                    <li key={i}>
+                      {new Date(e.starts_at).toLocaleDateString()} · {e.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           <div className="rounded-lg border border-slate-200 p-3 space-y-2">
             <div className="text-xs font-semibold text-slate-700">Permission to contact</div>

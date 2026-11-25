@@ -49,6 +49,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <NavLink to="/" end className={linkClass}>
               Members
             </NavLink>
+            <NavLink to="/events" className={linkClass}>
+              Events
+            </NavLink>
             {hasVoters && (
               <>
                 <NavLink to="/voters" className={linkClass}>

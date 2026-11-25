@@ -4,6 +4,8 @@ import LoginPage from './auth/LoginPage'
 import AppShell from './components/AppShell'
 import MembersPage from './pages/MembersPage'
 import JoinPage from './pages/JoinPage'
+import CheckinPage from './pages/CheckinPage'
+import EventsPage from './pages/EventsPage'
 import VoterListPage from './pages/VoterListPage'
 import MapPage from './pages/MapPage'
 import StatsPage from './pages/StatsPage'
@@ -37,6 +39,7 @@ function Gate() {
     <AppShell>
       <Routes>
         <Route path="/" element={<MembersPage />} />
+        <Route path="/events" element={<EventsPage />} />
         <Route path="/voters" element={<VoterListPage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/stats" element={<StatsPage />} />
@@ -56,6 +59,7 @@ export default function App() {
           {/* Public: anyone can open the sign-up form, no login needed. */}
           <Route path="/join" element={<JoinPage />} />
           <Route path="/join/:slug" element={<JoinPage />} />
+          <Route path="/checkin/:eventId" element={<CheckinPage />} />
           <Route path="*" element={<Gate />} />
         </Routes>
       </BrowserRouter>
