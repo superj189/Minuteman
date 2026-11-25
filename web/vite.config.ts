@@ -13,7 +13,7 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'gcyr-icon.svg'],
       manifest: {
         name: 'Gwinnett County Young Republicans',
-        short_name: 'Gwinnett YR',
+        short_name: 'GCYR',
         description: 'Member outreach for the Gwinnett County Young Republicans',
         theme_color: '#0f2a5e',
         background_color: '#0f2a5e',

@@ -1,7 +1,7 @@
 // One place for the club's name and colors, so a rename is a one-file change.
 export const BRAND = {
   name: 'Gwinnett County Young Republicans',
-  short: 'Gwinnett YR',
+  short: 'GCYR', // not "GYR" — that's the Georgia Young Republicans
   slug: 'gcyr', // the organization's slug in the `campaigns` table
   navy: '#0f2a5e',
   red: '#C8102E',
