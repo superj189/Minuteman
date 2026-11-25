@@ -135,7 +135,7 @@ export default function TeamPage() {
     return (
       <div className="p-6 max-w-lg mx-auto text-center text-slate-600">
         <h1 className="text-lg font-semibold text-slate-900 mb-2">Managers only</h1>
-        <p className="text-sm">Team management is available to campaign managers and deputies.</p>
+        <p className="text-sm">Officer management is available to managers and deputies.</p>
       </div>
     )
   }
@@ -154,8 +154,8 @@ export default function TeamPage() {
     else {
       setMsg(
         data === 'added'
-          ? `${inviteEmail.trim()} was added to the campaign.`
-          : `Invite created. ${inviteEmail.trim()} will join automatically when they sign up with that email at minuteman.vote.`,
+          ? `${inviteEmail.trim()} now has officer access.`
+          : `Invite created. ${inviteEmail.trim()} will join automatically when they create an account with that email at ${window.location.host}.`,
       )
       setInviteEmail('')
       await Promise.all([loadMembers(), loadInvites()])
@@ -171,7 +171,7 @@ export default function TeamPage() {
   }
 
   const removeMember = async (uid: string) => {
-    if (!window.confirm('Remove this person from the campaign?')) return
+    if (!window.confirm("Remove this person's officer access?")) return
     setBusy(true)
     await supabase.from('campaign_members').delete().eq('campaign_id', campaignId).eq('user_id', uid)
     await Promise.all([loadMembers(), loadAssignments()])
@@ -210,14 +210,18 @@ export default function TeamPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
-      <h1 className="text-xl font-bold text-slate-900 mb-4">Team</h1>
+      <h1 className="text-xl font-bold text-slate-900 mb-1">Officers</h1>
+      <p className="text-xs text-slate-500 mb-4">
+        People who can sign in and work the member list. Managers and deputies can add officers; volunteers can see and
+        update members; viewers see nothing private.
+      </p>
 
       {msg && <div className="mb-3 text-sm text-green-700 bg-green-50 rounded p-2">{msg}</div>}
       {err && <div className="mb-3 text-sm text-red-600 bg-red-50 rounded p-2">{err}</div>}
 
       {/* Invite */}
       <div className="bg-white rounded-lg border border-slate-200 p-4 mb-4">
-        <h2 className="text-sm font-semibold text-slate-900 mb-2">Invite someone</h2>
+        <h2 className="text-sm font-semibold text-slate-900 mb-2">Add an officer</h2>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             value={inviteEmail}
@@ -264,8 +268,8 @@ export default function TeamPage() {
         )}
       </div>
 
-      {/* Stats period */}
-      <div className="flex items-center justify-end gap-2 mb-2 text-sm">
+      {/* Stats period (only once door-knocking data exists) */}
+      {turfs.length > 0 && (<div className="flex items-center justify-end gap-2 mb-2 text-sm">
         <span className="text-slate-500">Hit-rates for:</span>
         <select
           value={range}
@@ -276,7 +280,7 @@ export default function TeamPage() {
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
         </select>
-      </div>
+      </div>)}
 
       {/* Members */}
       <div className="space-y-3">
@@ -355,8 +359,8 @@ export default function TeamPage() {
                 )
               })()}
 
-              {/* Zones for this member */}
-              <div className="mt-3">
+              {/* Zones for this member (only once turf exists) */}
+              {turfs.length > 0 && (<div className="mt-3">
                 <div className="text-xs font-medium text-slate-500 mb-1">Zones ({myZones.length})</div>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {myZones.map((a) => {
@@ -394,7 +398,7 @@ export default function TeamPage() {
                     )
                   })}
                 </select>
-              </div>
+              </div>)}
             </div>
           )
         })}

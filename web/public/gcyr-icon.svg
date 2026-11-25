@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f2a5e"/>
+  <text x="256" y="318" text-anchor="middle" font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" font-size="200" fill="#ffffff" letter-spacing="-6">GYR</text>
+  <rect x="120" y="372" width="272" height="24" rx="12" fill="#C8102E"/>
+</svg>

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { BRAND } from '../lib/brand'
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
@@ -29,9 +30,17 @@ export default function LoginPage() {
   return (
     <div className="min-h-full flex items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-        <h1 className="text-xl font-bold text-blue-700">Minuteman</h1>
+        <img src="/gcyr-icon.svg" alt="" className="w-12 h-12 mb-3" />
+        <h1 className="text-xl font-bold text-blue-700">{BRAND.short}</h1>
         <p className="text-sm text-slate-500 mt-1 mb-6">
-          {mode === 'signin' ? 'Sign in to continue' : 'Create your account'}
+          {mode === 'signin' ? 'Officer sign in' : 'Create your officer account'}
+        </p>
+        <p className="text-xs text-slate-500 -mt-4 mb-6">
+          Looking to join the club?{' '}
+          <a href="/join" className="text-blue-600 hover:underline">
+            Sign up here
+          </a>
+          .
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -10,11 +10,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'minuteman-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'gcyr-icon.svg'],
       manifest: {
-        name: 'Minuteman',
-        short_name: 'Minuteman',
-        description: 'Voter contact & canvassing platform for campaigns',
+        name: 'Gwinnett County Young Republicans',
+        short_name: 'Gwinnett YR',
+        description: 'Member outreach for the Gwinnett County Young Republicans',
         theme_color: '#0f2a5e',
         background_color: '#0f2a5e',
         display: 'standalone',

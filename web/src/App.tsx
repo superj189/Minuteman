@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthProvider'
 import LoginPage from './auth/LoginPage'
 import AppShell from './components/AppShell'
+import MembersPage from './pages/MembersPage'
+import JoinPage from './pages/JoinPage'
 import VoterListPage from './pages/VoterListPage'
 import MapPage from './pages/MapPage'
 import StatsPage from './pages/StatsPage'
@@ -17,15 +19,14 @@ function Gate() {
 
   if (!session) return <LoginPage />
 
-  // Logged in but not yet attached to any campaign — RLS would return no data.
+  // Logged in but not yet attached to any organization — RLS would return no data.
   if (memberships.length === 0) {
     return (
       <AppShell>
         <div className="max-w-xl mx-auto p-10 text-center text-slate-600">
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">No campaign access yet</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">No officer access yet</h2>
           <p className="text-sm">
-            Your account isn't linked to a campaign. An admin needs to add you as a member
-            (see the setup step in the project README).
+            Your account isn't linked to the club yet. Ask the chairman to add you from the Officers page.
           </p>
         </div>
       </AppShell>
@@ -35,12 +36,13 @@ function Gate() {
   return (
     <AppShell>
       <Routes>
-        <Route path="/" element={<VoterListPage />} />
+        <Route path="/" element={<MembersPage />} />
+        <Route path="/voters" element={<VoterListPage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/account" element={<AccountPage />} />
-        <Route path="*" element={<VoterListPage />} />
+        <Route path="*" element={<MembersPage />} />
       </Routes>
     </AppShell>
   )
@@ -50,7 +52,12 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Gate />
+        <Routes>
+          {/* Public: anyone can open the sign-up form, no login needed. */}
+          <Route path="/join" element={<JoinPage />} />
+          <Route path="/join/:slug" element={<JoinPage />} />
+          <Route path="*" element={<Gate />} />
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   )
