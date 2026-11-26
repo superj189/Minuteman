@@ -128,6 +128,11 @@ export default function MemberDrawer({ member, onClose, onSaved }: Props) {
                 Joined {new Date(member.created_at).toLocaleDateString()} · {SOURCE_LABELS[member.source]}
                 {member.how_heard && ` · heard via ${member.how_heard}`}
               </div>
+              <div className={member.user_id ? 'text-green-700' : 'text-slate-400'}>
+                {member.user_id
+                  ? '✓ Has a member login (manage it on People & access)'
+                  : 'No member login: on the list only, cannot sign in'}
+              </div>
               {member.interests.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
                   {member.interests.map((i) => (

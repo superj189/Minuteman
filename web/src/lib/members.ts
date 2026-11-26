@@ -21,6 +21,7 @@ export interface ClubMember {
   source: 'signup_page' | 'event' | 'manual' | 'import' | 'account'
   notes: string | null
   created_at: string
+  user_id?: string | null // set when this person has a member login
 }
 
 export interface ConsentEvent {

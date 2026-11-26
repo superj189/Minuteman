@@ -125,7 +125,7 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-5">
-        <Tile label="Members" value={s.total} to="/app/members" />
+        <Tile label="On member list" value={s.total} to="/app/members" />
         <Tile label="New (30 days)" value={s.new30} />
         <Tile label="Active or paid" value={s.active} />
         <Tile label="Member logins" value={logins} to="/app/people" />

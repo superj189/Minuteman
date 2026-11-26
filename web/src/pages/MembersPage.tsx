@@ -6,9 +6,9 @@ import { STATUSES, ageFrom, downloadCsv, formatPhone, statusInfo, type ClubMembe
 import MemberDrawer from '../components/MemberDrawer'
 
 const COLUMNS =
-  'id,campaign_id,first_name,last_name,email,phone,birth_date,zip,interests,how_heard,email_opt_in,sms_opt_in,consent_text,consent_at,status,source,notes,created_at'
+  'id,campaign_id,first_name,last_name,email,phone,birth_date,zip,interests,how_heard,email_opt_in,sms_opt_in,consent_text,consent_at,status,source,notes,created_at,user_id'
 
-type Reach = 'all' | 'email' | 'sms'
+type Reach = 'all' | 'email' | 'sms' | 'login' | 'nologin'
 
 export default function MembersPage() {
   const { activeCampaign, isBoard } = useAuth()
@@ -53,6 +53,8 @@ export default function MembersPage() {
       if (status !== 'all' && m.status !== status) return false
       if (reach === 'email' && !(m.email_opt_in && m.email)) return false
       if (reach === 'sms' && !(m.sms_opt_in && m.phone)) return false
+      if (reach === 'login' && !m.user_id) return false
+      if (reach === 'nologin' && m.user_id) return false
       if (!q) return true
       return (
         `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
@@ -70,6 +72,7 @@ export default function MembersPage() {
     active: members.filter((m) => m.status === 'active' || m.status === 'dues_paid').length,
     emailable: members.filter((m) => m.email_opt_in && m.email).length,
     textable: members.filter((m) => m.sms_opt_in && m.phone).length,
+    logins: members.filter((m) => m.user_id).length,
   }
 
   const link = joinUrl(activeCampaign?.campaigns.slug)
@@ -91,7 +94,13 @@ export default function MembersPage() {
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <h1 className="text-xl font-bold text-slate-900 flex-1">Members</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold text-slate-900">Member list</h1>
+          <p className="text-xs text-slate-500">
+            Everyone who has given you their info. Being on this list doesn't let anyone sign in; people with a{' '}
+            <LoginBadge /> can, and you manage that on People &amp; access.
+          </p>
+        </div>
         <button
           onClick={() => downloadCsv(`gcyr-members-${new Date().toISOString().slice(0, 10)}.csv`, filtered)}
           disabled={filtered.length === 0}
@@ -124,12 +133,13 @@ export default function MembersPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-4">
         <Stat label="Total" value={stats.total} />
         <Stat label="New this week" value={stats.newThisWeek} />
         <Stat label="Active or paid" value={stats.active} />
         <Stat label="OK to email" value={stats.emailable} onClick={() => setReach('email')} />
         <Stat label="OK to text" value={stats.textable} onClick={() => setReach('sms')} />
+        <Stat label="Have a login" value={stats.logins} onClick={() => setReach('login')} />
       </div>
 
       {/* Filters */}
@@ -156,6 +166,8 @@ export default function MembersPage() {
           <option value="all">Everyone</option>
           <option value="email">OK to email</option>
           <option value="sms">OK to text</option>
+          <option value="login">Has a login</option>
+          <option value="nologin">No login</option>
         </select>
       </div>
 
@@ -181,6 +193,7 @@ export default function MembersPage() {
                     <span className="font-medium text-slate-900 flex-1 truncate">
                       {m.first_name} {m.last_name}
                     </span>
+                    {m.user_id && <LoginBadge />}
                     <StatusPill status={m.status} />
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5 truncate">
@@ -207,6 +220,7 @@ export default function MembersPage() {
                   <th className="px-3 py-2 font-medium">Phone</th>
                   <th className="px-3 py-2 font-medium">Age</th>
                   <th className="px-3 py-2 font-medium">ZIP</th>
+                  <th className="px-3 py-2 font-medium">Login</th>
                   <th className="px-3 py-2 font-medium">Status</th>
                   <th className="px-3 py-2 font-medium">Can contact</th>
                   <th className="px-3 py-2 font-medium">Events</th>
@@ -223,6 +237,7 @@ export default function MembersPage() {
                     <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{formatPhone(m.phone)}</td>
                     <td className="px-3 py-2 text-slate-600">{ageFrom(m.birth_date) ?? ''}</td>
                     <td className="px-3 py-2 text-slate-600">{m.zip}</td>
+                    <td className="px-3 py-2">{m.user_id ? <LoginBadge /> : <span className="text-xs text-slate-400">No</span>}</td>
                     <td className="px-3 py-2">
                       <StatusPill status={m.status} />
                     </td>
@@ -254,6 +269,15 @@ export default function MembersPage() {
         />
       )}
     </div>
+  )
+}
+
+// Marks someone who can sign in to the member area.
+function LoginBadge() {
+  return (
+    <span className="inline-block text-[11px] font-medium rounded-full px-2 py-0.5 bg-green-600 text-white whitespace-nowrap align-middle">
+      Login
+    </span>
   )
 }
 

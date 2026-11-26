@@ -44,7 +44,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const boardItems: Item[] = isBoard
     ? [
         { to: '/app/dashboard', label: 'Dashboard' },
-        { to: '/app/members', label: 'Members' },
+        { to: '/app/members', label: 'Member list' },
         { to: '/app/people', label: 'People & access' },
         ...(hasVoters
           ? [
