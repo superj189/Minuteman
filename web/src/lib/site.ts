@@ -15,7 +15,7 @@ export const SITE = {
 
   about: [
     "Gwinnett is one of the largest and most diverse counties in Georgia, and the choices made here over the next few years will shape it for a generation. We think young conservatives should be in the room when those choices are made.",
-    'The Gwinnett County Young Republicans bring together people in their twenties and thirties who want to do more than vote. We meet regularly, get to know each other, hear from candidates and leaders, and roll up our sleeves when campaigns need help.',
+    'The Gwinnett County Young Republicans bring together people ages 18 to 40 who want to do more than vote. We meet regularly, get to know each other, hear from candidates and leaders, and roll up our sleeves when campaigns need help.',
     "Whether you've been involved for years or you're just curious, there's a place for you here.",
   ],
 
